@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión - Taller Moto Mapache</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fffbe1',
+                            100: '#fff6b8',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            900: '#78350f',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // USUARIOS REGISTRADOS
+        const systemUsers = [
+            { username: 'jefe_admin', password: '123', rol: 'jefe', nombre: 'Administrador General', mecanicoId: null },
+            { username: 'recepcion1', password: '123', rol: 'recepcionista', nombre: 'Recepcionista Principal', mecanicoId: null },
+            { username: 'mecanico_juan', password: '123', rol: 'mecanico', nombre: 'Juan Pérez', mecanicoId: 1 },
+            { username: 'mecanico_luis', password: '123', rol: 'mecanico', nombre: 'Luis Ramírez', mecanicoId: 2 }
+        ];
+
+        // DATOS INICIALES CON DATOS REALES VISIBLES
+        const initialClientes = [
+            { dpi: '1901234560901', nombre: 'Carlos', apellido: 'Mendoza', telefono: '5551-2345', email: 'carlos@gmail.com', direccion: 'Zona 1, Quetzaltenango' },
+            { dpi: '2010987650901', nombre: 'Ana', apellido: 'Gómez', telefono: '5558-7654', email: 'ana.gomez@gmail.com', direccion: 'Zona 3, Quetzaltenango' }
+        ];
+
+        const initialMotocicletas = [
+            { id: 1, clienteDpi: '1901234560901', placa: 'M-123ABC', marca: 'Yamaha', modelo: 'FZ 25', anio: 2022, color: 'Negro' },
+            { id: 2, clienteDpi: '2010987650901', placa: 'M-987XYZ', marca: 'Honda', modelo: 'Navi 110', anio: 2021, color: 'Rojo' }
+        ];
+
+        const initialMecanicos = [
+            { id: 1, nombre: 'Juan', apellido: 'Pérez', especialidad: 'Sistemas Eléctricos y Motor' },
+            { id: 2, nombre: 'Luis', apellido: 'Ramírez', especialidad: 'Frenos y Mantenimiento General' }
+        ];
+
+        const initialRepuestos = [
+            { id: 1, nombreRepuesto: 'Aceite Yamalube 20W50', marca: 'Yamalube', precioVenta: 65.00, existencia: 20, stockMinimo: 5 },
+            { id: 2, nombreRepuesto: 'Pastillas de Freno', marca: 'Yamaha', precioVenta: 120.00, existencia: 3, stockMinimo: 5 },
+            { id: 3, nombreRepuesto: 'Filtro de Aire', marca: 'Honda', precioVenta: 45.00, existencia: 15, stockMinimo: 4 }
+        ];
+
+        const initialOrdenes = [
+            {
+                id: 1,
+                motocicletaId: 1,
+                mecanicoId: 1,
+                fechaIngreso: '2026-03-01 09:30',
+                fechaEntrega: null,
+                problemaReportado: 'Ruido extraño al frenar y requiere cambio de aceite',
+                estado: 'En Proceso',
+                servicios: [{ id: 1, nombre: 'Cambio de Aceite', precio: 75.00 }],
+                repuestos: [{ id: 1, nombre: 'Aceite Yamalube 20W50', cantidad: 1, precioUnitario: 65.00, subtotal: 65.00 }],
+                costoTotal: 140.00,
+                saldoPendiente: 40.00
+            },
+            {
+                id: 2,
+                motocicletaId: 2,
+                mecanicoId: 2,
+                fechaIngreso: '2026-03-02 11:15',
+                fechaEntrega: null,
+                problemaReportado: 'Ajuste general de frenos traseros',
+                estado: 'Pendiente',
+                servicios: [{ id: 2, nombre: 'Revisión de Frenos', precio: 100.00 }],
+                repuestos: [],
+                costoTotal: 100.00,
+                saldoPendiente: 100.00
+            }
+        ];
+
+        // LOG DE AUDITORÍA DE INVENTARIO
+        const initialMovimientos = [
+            { id: 1, repuestoNombre: 'Aceite Yamalube 20W50', tipo: 'Entrada', cantidad: 20, usuario: 'jefe_admin', fechaHora: '2026-03-01 08:00', descripcion: 'Carga inicial de inventario' },
+            { id: 2, repuestoNombre: 'Pastillas de Freno', tipo: 'Entrada', cantidad: 5, usuario: 'recepcion1', fechaHora: '2026-03-01 08:30', descripcion: 'Reabastecimiento de repuestos' },
+            { id: 3, repuestoNombre: 'Pastillas de Freno', tipo: 'Salida', cantidad: 2, usuario: 'mecanico_juan', fechaHora: '2026-03-01 10:00', descripcion: 'Uso en Órden de Trabajo #1' }
+        ];
+
+        function App() {
+            const [currentUser, setCurrentUser] = useState(null);
+            const [loginUsername, setLoginUsername] = useState('');
+            const [loginPassword, setLoginPassword] = useState('');
+            const [loginError, setLoginError] = useState('');
+
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [clientes, setClientes] = useState(initialClientes);
+            const [motocicletas, setMotocicletas] = useState(initialMotocicletas);
+            const [mecanicos] = useState(initialMecanicos);
+            const [repuestos, setRepuestos] = useState(initialRepuestos);
+            const [ordenes, setOrdenes] = useState(initialOrdenes);
+            const [movimientos, setMovimientos] = useState(initialMovimientos);
+
+            // FORMULARIO AGREGAR STOCK
+            const [showStockModal, setShowStockModal] = useState(false);
+            const [selectedRepuestoId, setSelectedRepuestoId] = useState(1);
+            const [stockCantidad, setStockCantidad] = useState(5);
+            const [stockNota, setStockNota] = useState('Compra a proveedor');
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                const user = systemUsers.find(u => u.username === loginUsername && u.password === loginPassword);
+                if (user) {
+                    setCurrentUser(user);
+                    setLoginError('');
+                    setLoginUsername('');
+                    setLoginPassword('');
+                    if (user.rol === 'jefe') setActiveTab('dashboard');
+                    else if (user.rol === 'recepcionista') setActiveTab('recepcion_ordenes');
+                    else if (user.rol === 'mecanico') setActiveTab('mecanico_trabajos');
+                } else {
+                    setLoginError('Usuario o contraseña incorrectos.');
+                }
+            };
+
+            const handleAgregarStock = (e) => {
+                e.preventDefault();
+                const repuestoId = parseInt(selectedRepuestoId);
+                const cant = parseInt(stockCantidad);
+
+                // Actualizar stock de repuestos
+                setRepuestos(prev => prev.map(r => r.id === repuestoId ? { ...r, existencia: r.existencia + cant } : r));
+
+                const rep = repuestos.find(r => r.id === repuestoId);
+
+                // Registrar en log de auditoría
+                const newMov = {
+                    id: movimientos.length + 1,
+                    repuestoNombre: rep?.nombreRepuesto || 'Repuesto',
+                    tipo: 'Entrada',
+                    cantidad: cant,
+                    usuario: currentUser.username,
+                    fechaHora: new Date().toLocaleString(),
+                    descripcion: stockNota
+                };
+
+                setMovimientos([newMov, ...movimientos]);
+                setShowStockModal(false);
+                setStockCantidad(5);
+                setStockNota('Compra a proveedor');
+            };
+
+            if (!currentUser) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+                        <div className="w-full max-w-md bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl">
+                            <div className="text-center mb-6">
+                                <span className="text-5xl block mb-2">🦝</span>
+                                <h1 className="text-2xl font-bold text-white">Moto Mapache</h1>
+                                <p className="text-xs text-brand-400 font-semibold uppercase tracking-wider">Sistema de Gestión de Taller</p>
+                            </div>
+
+                            {loginError && (
+                                <div className="bg-rose-500/10 border border-rose-500/50 text-rose-400 text-xs p-3 rounded-xl mb-4">
+                                    {loginError}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleLogin} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-400 mb-1">Nombre de Usuario</label>
+                                    <input 
+                                        type="text" 
+                                        value={loginUsername}
+                                        onChange={e => setLoginUsername(e.target.value)}
+                                        placeholder="Ingrese su usuario..."
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:border-brand-500 focus:outline-none"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-400 mb-1">Contraseña</label>
+                                    <input 
+                                        type="password" 
+                                        value={loginPassword}
+                                        onChange={e => setLoginPassword(e.target.value)}
+                                        placeholder="••••••••"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:border-brand-500 focus:outline-none"
+                                        required
+                                    />
+                                </div>
+                                <button type="submit" className="w-full bg-brand-500 hover:bg-brand-600 font-bold text-slate-950 p-3 rounded-xl text-sm transition shadow-lg shadow-brand-500/20">
+                                    Iniciar Sesión
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden">
+                    <aside className="w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center gap-3 mb-6 p-2">
+                                <span className="text-3xl">🦝</span>
+                                <div>
+                                    <h1 className="font-bold text-lg text-white">Moto Mapache</h1>
+                                    <p className="text-[10px] text-brand-400 font-bold uppercase">{currentUser.rol}</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-6">
+                                <p className="text-[10px] text-slate-500 uppercase font-bold">Usuario Activo</p>
+                                <p className="text-sm font-semibold text-white">{currentUser.nombre}</p>
+                                <p className="text-xs text-slate-400 font-mono">@{currentUser.username}</p>
+                            </div>
+
+                            <nav className="space-y-1">
+                                {currentUser.rol === 'jefe' && (
+                                    <>
+                                        <button onClick={()=>setActiveTab('dashboard')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📊 Dashboard General</button>
+                                        <button onClick={()=>setActiveTab('clientes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'clientes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>👥 Clientes & Motos (DPI)</button>
+                                        <button onClick={()=>setActiveTab('ordenes_jefe')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'ordenes_jefe' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>🛠️ Todas las Órdenes</button>
+                                        <button onClick={()=>setActiveTab('inventario')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'inventario' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📦 Control Inventario</button>
+                                        <button onClick={()=>setActiveTab('auditoria')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'auditoria' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📜 Historial de Transacciones</button>
+                                    </>
+                                )}
+
+                                {currentUser.rol === 'recepcionista' && (
+                                    <>
+                                        <button onClick={()=>setActiveTab('recepcion_ordenes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'recepcion_ordenes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📝 Crear Órden de Trabajo</button>
+                                        <button onClick={()=>setActiveTab('clientes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'clientes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>👤 Registrar Cliente (DPI)</button>
+                                        <button onClick={()=>setActiveTab('vista_pendientes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'vista_pendientes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>⏳ Órdenes Pendientes</button>
+                                        <button onClick={()=>setActiveTab('inventario')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'inventario' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📦 Inventario & Stock</button>
+                                        <button onClick={()=>setActiveTab('auditoria')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'auditoria' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📜 Historial de Transacciones</button>
+                                    </>
+                                )}
+
+                                {currentUser.rol === 'mecanico' && (
+                                    <>
+                                        <button onClick={()=>setActiveTab('mecanico_trabajos')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'mecanico_trabajos' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>🔧 Mis Trabajos Asignados</button>
+                                        <button onClick={()=>setActiveTab('mecanico_stock')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'mecanico_stock' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📦 Consultar Repuestos</button>
+                                    </>
+                                )}
+                            </nav>
+                        </div>
+
+                        <button onClick={()=>setCurrentUser(null)} className="w-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 p-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2">
+                            🚪 Cerrar Sesión
+                        </button>
+                    </aside>
+
+                    <main className="flex-1 p-6 overflow-y-auto">
+                        {/* DASHBOARD JEFE */}
+                        {currentUser.rol === 'jefe' && activeTab === 'dashboard' && (
+                            <div className="space-y-6">
+                                <h2 className="text-xl font-bold text-white">Panel General de Control (Jefe)</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                                        <p className="text-xs text-slate-400 uppercase font-semibold">Órdenes Activas</p>
+                                        <h3 className="text-3xl font-extrabold text-white mt-2">{ordenes.length}</h3>
+                                    </div>
+                                    <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                                        <p className="text-xs text-slate-400 uppercase font-semibold">Clientes por DPI</p>
+                                        <h3 className="text-3xl font-extrabold text-brand-400 mt-2">{clientes.length}</h3>
+                                    </div>
+                                    <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                                        <p className="text-xs text-slate-400 uppercase font-semibold">Stock Crítico</p>
+                                        <h3 className="text-3xl font-extrabold text-rose-500 mt-2">{repuestos.filter(r=>r.existencia<=r.stockMinimo).length}</h3>
+                                    </div>
+                                    <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                                        <p className="text-xs text-slate-400 uppercase font-semibold">Ingresos Registrados</p>
+                                        <h3 className="text-3xl font-extrabold text-emerald-400 mt-2">Q 100.00</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ÓRDEN DE TRABAJO */}
+                        {(activeTab === 'ordenes_jefe' || activeTab === 'vista_pendientes') && (
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-bold text-white">Órdenes de Trabajo Registradas</h3>
+                                <div className="grid grid-cols-1 gap-4">
+                                    {ordenes.map(o => {
+                                        const moto = motocicletas.find(m => m.id === o.motocicletaId);
+                                        const mec = mecanicos.find(m => m.id === o.mecanicoId);
+                                        return (
+                                            <div key={o.id} className="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex justify-between items-center">
+                                                <div>
+                                                    <span className="text-xs font-mono text-brand-400 font-bold">ÓRDEN #{o.id} - {o.fechaIngreso}</span>
+                                                    <h4 className="text-white font-bold">{moto?.marca} {moto?.modelo} ({moto?.placa})</h4>
+                                                    <p className="text-xs text-slate-400">Mecánico: {mec ? `${mec.nombre} ${mec.apellido}` : 'Sin asignar'}</p>
+                                                    <p className="text-xs text-slate-300 mt-1">Falla: {o.problemaReportado}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-xs font-bold">{o.estado}</span>
+                                                    <p className="text-sm font-extrabold text-emerald-400 mt-2">Total: Q {o.costoTotal.toFixed(2)}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* MÓDULO DE INVENTARIO CON BOTÓN AGREGAR STOCK (JEFE Y RECEPCIONISTA) */}
+                        {(activeTab === 'inventario' || activeTab === 'mecanico_stock') && (
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-lg font-bold text-white">Stock e Inventario de Repuestos</h3>
+                                    {(currentUser.rol === 'jefe' || currentUser.rol === 'recepcionista') && (
+                                        <button 
+                                            onClick={() => setShowStockModal(true)} 
+                                            className="bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-2"
+                                        >
+                                            ➕ Agregar Stock / Reabastecer
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {repuestos.map(r => (
+                                        <div key={r.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
+                                            <div>
+                                                <h4 className="font-bold text-white">{r.nombreRepuesto}</h4>
+                                                <p className="text-xs text-slate-400">Marca: {r.marca}</p>
+                                                <p className="text-xs text-slate-400">Precio Venta: Q {r.precioVenta.toFixed(2)}</p>
+                                                <p className="text-[10px] text-slate-500">Mínimo requerido: {r.stockMinimo}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className={`text-2xl font-extrabold block ${r.existencia <= r.stockMinimo ? 'text-rose-500' : 'text-brand-400'}`}>
+                                                    {r.existencia}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 uppercase font-bold">Unidades</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* VISTA HISTORIAL DE TRANSACCIONES / AUDITORÍA */}
+                        {activeTab === 'auditoria' && (
+                            <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+                                <div>
+                                    <h3 className="text-lg font-bold text-white">Historial de Transacciones y Auditoría de Stock</h3>
+                                    <p className="text-xs text-slate-400">Muestra en tiempo real qué usuario agregó o descontó productos del inventario con fecha y hora.</p>
+                                </div>
+
+                                <table className="w-full text-left text-sm text-slate-300">
+                                    <thead className="bg-slate-800 text-xs uppercase text-slate-400">
+                                        <tr>
+                                            <th className="p-3">#</th>
+                                            <th className="p-3">Repuesto</th>
+                                            <th className="p-3">Tipo Movimiento</th>
+                                            <th className="p-3">Cantidad</th>
+                                            <th className="p-3">Usuario Que Registró</th>
+                                            <th className="p-3">Fecha y Hora</th>
+                                            <th className="p-3">Descripción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800">
+                                        {movimientos.map(m => (
+                                            <tr key={m.id}>
+                                                <td className="p-3 font-mono text-slate-500">{m.id}</td>
+                                                <td className="p-3 font-bold text-white">{m.repuestoNombre}</td>
+                                                <td className="p-3">
+                                                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${m.tipo === 'Entrada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                                                        {m.tipo}
+                                                    </span>
+                                                </td>
+                                                <td className="p-3 font-bold">{m.cantidad}</td>
+                                                <td className="p-3 font-mono text-brand-400 font-semibold">@{m.usuario}</td>
+                                                <td className="p-3 text-xs text-slate-400">{m.fechaHora}</td>
+                                                <td className="p-3 text-xs text-slate-300">{m.descripcion}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* CLIENTES */}
+                        {activeTab === 'clientes' && (
+                            <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                                <h3 className="text-lg font-bold text-white mb-4">Registro de Clientes (ID como DPI)</h3>
+                                <table className="w-full text-left text-sm text-slate-300">
+                                    <thead className="bg-slate-800 text-xs uppercase text-slate-400">
+                                        <tr>
+                                            <th className="p-3">DPI (ID Cliente)</th>
+                                            <th className="p-3">Nombre</th>
+                                            <th className="p-3">Teléfono</th>
+                                            <th className="p-3">Motocicleta</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800">
+                                        {clientes.map(c => {
+                                            const moto = motocicletas.find(m => m.clienteDpi === c.dpi);
+                                            return (
+                                                <tr key={c.dpi}>
+                                                    <td className="p-3 font-mono text-brand-400 font-bold">{c.dpi}</td>
+                                                    <td className="p-3 font-semibold text-white">{c.nombre} {c.apellido}</td>
+                                                    <td className="p-3">{c.telefono}</td>
+                                                    <td className="p-3">{moto ? `${moto.marca} ${moto.modelo} (${moto.placa})` : 'Sin registrar'}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* TRABAJOS DE MECÁNICO */}
+                        {currentUser.rol === 'mecanico' && activeTab === 'mecanico_trabajos' && (
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-bold text-white">Trabajos Asignados a {currentUser.nombre}</h3>
+                                {ordenes.filter(o => o.mecanicoId === currentUser.mecanicoId).map(o => {
+                                    const moto = motocicletas.find(m => m.id === o.motocicletaId);
+                                    return (
+                                        <div key={o.id} className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <span className="text-xs font-mono text-brand-400 font-bold">ÓRDEN #{o.id}</span>
+                                                    <h4 className="text-white font-bold">{moto?.marca} {moto?.modelo} ({moto?.placa})</h4>
+                                                </div>
+                                                <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-xs font-bold">{o.estado}</span>
+                                            </div>
+                                            <p className="text-xs text-slate-300 mb-4 bg-slate-950 p-3 rounded-xl border border-slate-800/80"><strong>Problema:</strong> {o.problemaReportado}</p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </main>
+
+                    {/* MODAL REABASTECER STOCK */}
+                    {showStockModal && (
+                        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-md w-full space-y-4">
+                                <h3 className="text-lg font-bold text-white">➕ Entrada de Stock / Reabastecimiento</h3>
+                                <form onSubmit={handleAgregarStock} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">Repuesto a Ingresar</label>
+                                        <select 
+                                            value={selectedRepuestoId} 
+                                            onChange={e => setSelectedRepuestoId(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white"
+                                        >
+                                            {repuestos.map(r => (
+                                                <option key={r.id} value={r.id}>{r.nombreRepuesto} (Stock Actual: {r.existencia})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">Cantidad de Unidades a Sumar</label>
+                                        <input 
+                                            type="number" 
+                                            min="1" 
+                                            value={stockCantidad} 
+                                            onChange={e => setStockCantidad(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white" 
+                                            required 
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">Nota / Proveedor / Descripción</label>
+                                        <input 
+                                            type="text" 
+                                            value={stockNota} 
+                                            onChange={e => setStockNota(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white" 
+                                            required 
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-2 justify-end pt-2">
+                                        <button type="button" onClick={() => setShowStockModal(false)} className="bg-slate-800 text-slate-300 text-xs px-4 py-2.5 rounded-xl font-bold">Cancelar</button>
+                                        <button type="submit" className="bg-brand-500 hover:bg-brand-600 text-slate-950 text-xs px-4 py-2.5 rounded-xl font-bold">Guardar Entrada</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
+```
+
+```sql:Script MySQL Taller Moto Mapache con Roles y DPI:script_moto_mapache_v2.sql
+-- ============================================================
+-- BASE DE DATOS: TALLER MOTO MAPACHE (V2 - CON AUDITORÍA)
+-- ============================================================
+DROP DATABASE IF EXISTS moto_mapache_db;
+CREATE DATABASE moto_mapache_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE moto_mapache_db;
+
+-- ------------------------------------------------------------
+-- LIMPIEZA PREVIA DE VISTAS Y TABLAS
+-- ------------------------------------------------------------
+DROP VIEW IF EXISTS vista_auditoria_inventario;
+DROP VIEW IF EXISTS vista_motocicletas_en_taller;
+DROP VIEW IF EXISTS vista_ingresos_por_periodo;
+DROP VIEW IF EXISTS vista_trabajos_por_mecanico;
+DROP VIEW IF EXISTS vista_repuestos_baja_existencia;
+DROP VIEW IF EXISTS vista_historial_mantenimiento;
+DROP VIEW IF EXISTS vista_ordenes_pendientes;
+
+DROP TABLE IF EXISTS pagos;
+DROP TABLE IF EXISTS movimientos_inventario;
+DROP TABLE IF EXISTS orden_detalle_repuestos;
+DROP TABLE IF EXISTS orden_detalle_servicios;
+DROP TABLE IF EXISTS ordenes_trabajo;
+DROP TABLE IF EXISTS repuestos;
+DROP TABLE IF EXISTS servicios;
+DROP TABLE IF EXISTS usuarios;
+DROP TABLE IF EXISTS mecanicos;
+DROP TABLE IF EXISTS motocicletas;
+DROP TABLE IF EXISTS clientes;
+DROP TABLE IF EXISTS roles;
+
+-- ------------------------------------------------------------
+-- 1. TABLAS MAESTRAS Y DE AUTENTICACIÓN
+-- ------------------------------------------------------------
+
+CREATE TABLE roles (
+    rol_id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_rol VARCHAR(50) UNIQUE NOT NULL,
+    descripcion VARCHAR(255)
+);
+
+CREATE TABLE clientes (
+    dpi VARCHAR(13) PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    apellido VARCHAR(100) NOT NULL,
+    telefono VARCHAR(20),
+    email VARCHAR(100),
+    direccion TEXT,
+    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE motocicletas (
+    motocicleta_id INT AUTO_INCREMENT PRIMARY KEY,
+    cliente_dpi VARCHAR(13) NOT NULL,
+    placa VARCHAR(15) UNIQUE NOT NULL,
+    marca VARCHAR(50) NOT NULL,
+    modelo VARCHAR(50) NOT NULL,
+    anio INT NOT NULL,
+    color VARCHAR(30),
+    caracteristicas TEXT,
+    FOREIGN KEY (cliente_dpi) REFERENCES clientes(dpi) ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE mecanicos (
+    mecanico_id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    apellido VARCHAR(100) NOT NULL,
+    especialidad VARCHAR(100),
+    activo BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE usuarios (
+    usuario_id INT AUTO_INCREMENT PRIMARY KEY,
+    rol_id INT NOT NULL,
+    mecanico_id INT NULL,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (rol_id) REFERENCES roles(rol_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (mecanico_id) REFERENCES mecanicos(mecanico_id) ON DELETE SET NULL
+);
+
+CREATE TABLE servicios (
+    servicio_id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_servicio VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    precio_base DECIMAL(10,2) NOT NULL CHECK (precio_base >= 0)
+);
+
+CREATE TABLE repuestos (
+    repuesto_id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_repuesto VARCHAR(100) NOT NULL,
+    marca VARCHAR(50),
+    precio_venta DECIMAL(10,2) NOT NULL CHECK (precio_venta >= 0),
+    existencia INT NOT NULL DEFAULT 0 CHECK (existencia >= 0),
+    stock_minimo INT NOT NULL DEFAULT 5 CHECK (stock_minimo >= 0)
+);
+
+-- ------------------------------------------------------------
+-- 2. TABLAS TRANSACCIONALES CON AUDITORÍA
+-- ------------------------------------------------------------
+
+CREATE TABLE ordenes_trabajo (
+    orden_id INT AUTO_INCREMENT PRIMARY KEY,
+    motocicleta_id INT NOT NULL,
+    mecanico_id INT NULL,
+    fecha_ingreso DATETIME DEFAULT CURRENT_TIMESTAMP,
+    fecha_entrega DATETIME NULL,
+    problema_reportado TEXT NOT NULL,
+    diagnostico TEXT,
+    observaciones TEXT,
+    estado ENUM('Pendiente', 'En Proceso', 'Finalizada', 'Cancelada') DEFAULT 'Pendiente',
+    costo_total DECIMAL(10,2) DEFAULT 0.00,
+    saldo_pendiente DECIMAL(10,2) DEFAULT 0.00,
+    FOREIGN KEY (motocicleta_id) REFERENCES motocicletas(motocicleta_id),
+    FOREIGN KEY (mecanico_id) REFERENCES mecanicos(mecanico_id)
+);
+
+CREATE TABLE orden_detalle_servicios (
+    detalle_servicio_id INT AUTO_INCREMENT PRIMARY KEY,
+    orden_id INT NOT NULL,
+    servicio_id INT NOT NULL,
+    mecanico_id INT NULL,
+    precio_aplicado DECIMAL(10,2) NOT NULL CHECK (precio_aplicado >= 0),
+    observaciones TEXT,
+    FOREIGN KEY (orden_id) REFERENCES ordenes_trabajo(orden_id) ON DELETE CASCADE,
+    FOREIGN KEY (servicio_id) REFERENCES servicios(servicio_id),
+    FOREIGN KEY (mecanico_id) REFERENCES mecanicos(mecanico_id)
+);
+
+CREATE TABLE orden_detalle_repuestos (
+    detalle_repuesto_id INT AUTO_INCREMENT PRIMARY KEY,
+    orden_id INT NOT NULL,
+    repuesto_id INT NOT NULL,
+    cantidad INT NOT NULL CHECK (cantidad > 0),
+    precio_unitario_aplicado DECIMAL(10,2) NOT NULL CHECK (precio_unitario_aplicado >= 0),
+    subtotal DECIMAL(10,2) GENERATED ALWAYS AS (cantidad * precio_unitario_aplicado) STORED,
+    FOREIGN KEY (orden_id) REFERENCES ordenes_trabajo(orden_id) ON DELETE CASCADE,
+    FOREIGN KEY (repuesto_id) REFERENCES repuestos(repuesto_id)
+);
+
+-- TABLA DE AUDITORÍA Y REGISTRO DE MOVIMIENTOS
+CREATE TABLE movimientos_inventario (
+    movimiento_id INT AUTO_INCREMENT PRIMARY KEY,
+    repuesto_id INT NOT NULL,
+    usuario_registro VARCHAR(50) DEFAULT 'sistema', -- QUIEN AGREGÓ/USÓ EL PRODUCTO
+    tipo_movimiento ENUM('Entrada', 'Salida') NOT NULL,
+    cantidad INT NOT NULL CHECK (cantidad > 0),
+    fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP, -- FECHA Y HORA
+    descripcion TEXT,
+    FOREIGN KEY (repuesto_id) REFERENCES repuestos(repuesto_id)
+);
+
+CREATE TABLE pagos (
+    pago_id INT AUTO_INCREMENT PRIMARY KEY,
+    orden_id INT NOT NULL,
+    monto DECIMAL(10,2) NOT NULL CHECK (monto > 0),
+    fecha_pago DATETIME DEFAULT CURRENT_TIMESTAMP,
+    metodo_pago ENUM('Efectivo', 'Tarjeta', 'Transferencia') NOT NULL,
+    FOREIGN KEY (orden_id) REFERENCES ordenes_trabajo(orden_id)
+);
+
+-- ------------------------------------------------------------
+-- 3. VISTA NUEVA: AUDITORÍA DE INVENTARIO
+-- ------------------------------------------------------------
+CREATE VIEW vista_auditoria_inventario AS
+SELECT 
+    mi.movimiento_id,
+    r.nombre_repuesto,
+    r.marca,
+    mi.tipo_movimiento,
+    mi.cantidad,
+    mi.usuario_registro,
+    mi.fecha_hora,
+    mi.descripcion
+FROM movimientos_inventario mi
+JOIN repuestos r ON mi.repuesto_id = r.repuesto_id
+ORDER BY mi.fecha_hora DESC;
+
+-- VISTAS COMPLEMENTARIAS
+CREATE VIEW vista_ordenes_pendientes AS
+SELECT 
+    ot.orden_id,
+    CONCAT(c.nombre, ' ', c.apellido) AS cliente,
+    c.dpi AS cliente_dpi,
+    c.telefono,
+    CONCAT(m.marca, ' ', m.modelo, ' (', m.placa, ')') AS motocicleta,
+    ot.fecha_ingreso,
+    ot.problema_reportado,
+    ot.estado,
+    CONCAT(mec.nombre, ' ', mec.apellido) AS mecanico_asignado
+FROM ordenes_trabajo ot
+JOIN motocicletas m ON ot.motocicleta_id = m.motocicleta_id
+JOIN clientes c ON m.cliente_dpi = c.dpi
+LEFT JOIN mecanicos mec ON ot.mecanico_id = mec.mecanico_id
+WHERE ot.estado IN ('Pendiente', 'En Proceso');
+
+-- ------------------------------------------------------------
+-- 4. POBLAMIENTO INICIAL CON TRANSACCIONES
+-- ------------------------------------------------------------
+INSERT INTO roles (nombre_rol, descripcion) VALUES
+('Jefe', 'Acceso total y administración general'),
+('Recepcionista', 'Atención, ingreso de clientes, motos, órdenes y cobros'),
+('Mecanico', 'Consulta de tareas asignadas y reporte de avance');
+
+INSERT INTO clientes (dpi, nombre, apellido, telefono, email, direccion) VALUES
+('1901234560901', 'Carlos', 'Mendoza', '5551-2345', 'carlos@gmail.com', 'Zona 1, Quetzaltenango'),
+('2010987650901', 'Ana', 'Gómez', '5558-7654', 'ana.gomez@gmail.com', 'Zona 3, Quetzaltenango');
+
+INSERT INTO motocicletas (cliente_dpi, placa, marca, modelo, anio, color, caracteristicas) VALUES
+('1901234560901', 'M-123ABC', 'Yamaha', 'FZ 25', 2022, 'Negro', 'Freno ABS delantero'),
+('2010987650901', 'M-987XYZ', 'Honda', 'Navi 110', 2021, 'Rojo', 'Scooter automática');
+
+INSERT INTO mecanicos (nombre, apellido, especialidad, activo) VALUES
+('Juan', 'Pérez', 'Sistemas Eléctricos y Motor', TRUE),
+('Luis', 'Ramírez', 'Frenos y Mantenimiento General', TRUE);
+
+INSERT INTO usuarios (rol_id, mecanico_id, username, password_hash) VALUES
+(1, NULL, 'jefe_admin', '123'),
+(2, NULL, 'recepcion1', '123'),
+(3, 1, 'mecanico_juan', '123'),
+(3, 2, 'mecanico_luis', '123');
+
+INSERT INTO servicios (nombre_servicio, descripcion, precio_base) VALUES
+('Cambio de Aceite', 'Sustitución de lubricante y filtro', 75.00),
+('Revisión de Frenos', 'Limpieza y ajuste de pastillas/zapatas', 100.00);
+
+INSERT INTO repuestos (nombre_repuesto, marca, precio_venta, existencia, stock_minimo) VALUES
+('Aceite Yamalube 20W50', 'Yamalube', 65.00, 20, 5),
+('Pastillas de Freno', 'Yamaha', 120.00, 3, 5);
+
+INSERT INTO movimientos_inventario (repuesto_id, usuario_registro, tipo_movimiento, cantidad, fecha_hora, descripcion) VALUES
+(1, 'jefe_admin', 'Entrada', 20, '2026-03-01 08:00:00', 'Carga inicial de inventario'),
+(2, 'recepcion1', 'Entrada', 5, '2026-03-01 08:30:00', 'Reabastecimiento de repuestos'),
+(2, 'mecanico_juan', 'Salida', 2, '2026-03-01 10:00:00', 'Uso en Órden de Trabajo #1');
+
+INSERT INTO ordenes_trabajo (motocicleta_id, mecanico_id, fecha_ingreso, problema_reportado, estado, costo_total, saldo_pendiente) VALUES
+(1, 1, NOW(), 'Ruido extraño al frenar y requiere cambio de aceite', 'En Proceso', 140.00, 40.00),
+(2, 2, NOW(), 'Ajuste general de frenos traseros', 'Pendiente', 100.00, 100.00);
+```
+
+### 📋 Resumen de cambios aplicados:
+
+1. **Reabastecimiento de Stock (Jefe y Recepcionista):** Se incorporó un botón **"➕ Agregar Stock / Reabastecer"** en la pestaña de inventario para que el `jefe_admin` y `recepcion1` incrementen existencias.
+2. **Vista de Auditoría de Transacciones:** En el menú se reemplazó la categoría por **`📜 Historial de Transacciones`**, la cual muestra una tabla con:
+   * **Nombre del producto**
+   * **Tipo de movimiento (`Entrada` o `Salida`)**
+   * **Cantidad agregada/usada**
+   * **Usuario que lo registró (`@jefe_admin`, `@recepcion1`, etc.)**
+   * **Fecha y hora exacta del registro**
+3. **Carga de Datos Iniciales Visibles:** Se precargaron órdenes de trabajo y movimientos de almacén de prueba para que los módulos no luzcan vacíos al hacer pruebas.
