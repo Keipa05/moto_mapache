@@ -43,7 +43,7 @@
             { username: 'mecanico_luis', password: '123', rol: 'mecanico', nombre: 'Luis Ramírez', mecanicoId: 2 }
         ];
 
-        // DATOS INICIALES CON DATOS REALES VISIBLES
+        // DATOS INICIALES
         const initialClientes = [
             { dpi: '1901234560901', nombre: 'Carlos', apellido: 'Mendoza', telefono: '5551-2345', email: 'carlos@gmail.com', direccion: 'Zona 1, Quetzaltenango' },
             { dpi: '2010987650901', nombre: 'Ana', apellido: 'Gómez', telefono: '5558-7654', email: 'ana.gomez@gmail.com', direccion: 'Zona 3, Quetzaltenango' }
@@ -59,10 +59,19 @@
             { id: 2, nombre: 'Luis', apellido: 'Ramírez', especialidad: 'Frenos y Mantenimiento General' }
         ];
 
+        const initialServicios = [
+            { id: 1, nombre: 'Cambio de Aceite y Filtro', precio: 75.00 },
+            { id: 2, nombre: 'Revisión y Ajuste de Frenos', precio: 100.00 },
+            { id: 3, nombre: 'Alineación y Balanceo', precio: 85.00 },
+            { id: 4, nombre: 'Limpieza de Carburador / Inyectores', precio: 150.00 },
+            { id: 5, nombre: 'Servicio Mayor Completo', precio: 350.00 }
+        ];
+
         const initialRepuestos = [
             { id: 1, nombreRepuesto: 'Aceite Yamalube 20W50', marca: 'Yamalube', precioVenta: 65.00, existencia: 20, stockMinimo: 5 },
-            { id: 2, nombreRepuesto: 'Pastillas de Freno', marca: 'Yamaha', precioVenta: 120.00, existencia: 3, stockMinimo: 5 },
-            { id: 3, nombreRepuesto: 'Filtro de Aire', marca: 'Honda', precioVenta: 45.00, existencia: 15, stockMinimo: 4 }
+            { id: 2, nombreRepuesto: 'Pastillas de Freno Delanteras', marca: 'Yamaha', precioVenta: 120.00, existencia: 8, stockMinimo: 5 },
+            { id: 3, nombreRepuesto: 'Filtro de Aire OEM', marca: 'Honda', precioVenta: 45.00, existencia: 15, stockMinimo: 4 },
+            { id: 4, nombreRepuesto: 'Bujía NGK C7HSA', marca: 'NGK', precioVenta: 25.00, existencia: 30, stockMinimo: 10 }
         ];
 
         const initialOrdenes = [
@@ -73,8 +82,9 @@
                 fechaIngreso: '2026-03-01 09:30',
                 fechaEntrega: null,
                 problemaReportado: 'Ruido extraño al frenar y requiere cambio de aceite',
+                diagnostico: 'Pastillas desgastadas al 80%. Se requiere cambio.',
                 estado: 'En Proceso',
-                servicios: [{ id: 1, nombre: 'Cambio de Aceite', precio: 75.00 }],
+                servicios: [{ id: 1, nombre: 'Cambio de Aceite y Filtro', precio: 75.00 }],
                 repuestos: [{ id: 1, nombre: 'Aceite Yamalube 20W50', cantidad: 1, precioUnitario: 65.00, subtotal: 65.00 }],
                 costoTotal: 140.00,
                 saldoPendiente: 40.00
@@ -86,19 +96,19 @@
                 fechaIngreso: '2026-03-02 11:15',
                 fechaEntrega: null,
                 problemaReportado: 'Ajuste general de frenos traseros',
+                diagnostico: 'Falta lubricar guaya y calibrar tambor.',
                 estado: 'Pendiente',
-                servicios: [{ id: 2, nombre: 'Revisión de Frenos', precio: 100.00 }],
+                servicios: [{ id: 2, nombre: 'Revisión y Ajuste de Frenos', precio: 100.00 }],
                 repuestos: [],
                 costoTotal: 100.00,
                 saldoPendiente: 100.00
             }
         ];
 
-        // LOG DE AUDITORÍA DE INVENTARIO
         const initialMovimientos = [
             { id: 1, repuestoNombre: 'Aceite Yamalube 20W50', tipo: 'Entrada', cantidad: 20, usuario: 'jefe_admin', fechaHora: '2026-03-01 08:00', descripcion: 'Carga inicial de inventario' },
-            { id: 2, repuestoNombre: 'Pastillas de Freno', tipo: 'Entrada', cantidad: 5, usuario: 'recepcion1', fechaHora: '2026-03-01 08:30', descripcion: 'Reabastecimiento de repuestos' },
-            { id: 3, repuestoNombre: 'Pastillas de Freno', tipo: 'Salida', cantidad: 2, usuario: 'mecanico_juan', fechaHora: '2026-03-01 10:00', descripcion: 'Uso en Órden de Trabajo #1' }
+            { id: 2, repuestoNombre: 'Pastillas de Freno Delanteras', tipo: 'Entrada', cantidad: 10, usuario: 'recepcion1', fechaHora: '2026-03-01 08:30', descripcion: 'Reabastecimiento de repuestos' },
+            { id: 3, repuestoNombre: 'Pastillas de Freno Delanteras', tipo: 'Salida', cantidad: 2, usuario: 'mecanico_juan', fechaHora: '2026-03-01 10:00', descripcion: 'Uso en Órden de Trabajo #1' }
         ];
 
         function App() {
@@ -108,18 +118,51 @@
             const [loginError, setLoginError] = useState('');
 
             const [activeTab, setActiveTab] = useState('dashboard');
+            const [otrosSubTab, setOtrosSubTab] = useState('vista_ordenes_pendientes');
+
             const [clientes, setClientes] = useState(initialClientes);
             const [motocicletas, setMotocicletas] = useState(initialMotocicletas);
             const [mecanicos] = useState(initialMecanicos);
+            const [servicios] = useState(initialServicios);
             const [repuestos, setRepuestos] = useState(initialRepuestos);
             const [ordenes, setOrdenes] = useState(initialOrdenes);
             const [movimientos, setMovimientos] = useState(initialMovimientos);
 
-            // FORMULARIO AGREGAR STOCK
+            // FORMULARIO AGREGAR CLIENTE Y MOTO
+            const [nuevoClienteDpi, setNuevoClienteDpi] = useState('');
+            const [nuevoClienteNombre, setNuevoClienteNombre] = useState('');
+            const [nuevoClienteApellido, setNuevoClienteApellido] = useState('');
+            const [nuevoClienteTel, setNuevoClienteTel] = useState('');
+            const [nuevoClienteEmail, setNuevoClienteEmail] = useState('');
+            const [nuevoClienteDir, setNuevoClienteDir] = useState('');
+
+            const [nuevaPlaca, setNuevaPlaca] = useState('');
+            const [nuevaMarca, setNuevaMarca] = useState('');
+            const [nuevoModelo, setNuevoModelo] = useState('');
+            const [nuevoAnio, setNuevoAnio] = useState('2023');
+            const [nuevoColor, setNuevoColor] = useState('');
+
+            // FORMULARIO CREAR ÓRDEN DE TRABAJO
+            const [ordenClienteDpi, setOrdenClienteDpi] = useState(initialClientes[0].dpi);
+            const [ordenMotoId, setOrdenMotoId] = useState(initialMotocicletas[0].id);
+            const [ordenMecanicoId, setOrdenMecanicoId] = useState(initialMecanicos[0].id);
+            const [ordenFalla, setOrdenFalla] = useState('');
+            const [ordenServiciosSeleccionados, setOrdenServiciosSeleccionados] = useState([]);
+            const [ordenMensajeExito, setOrdenMensajeExito] = useState('');
+
+            // MODAL AGREGAR STOCK
             const [showStockModal, setShowStockModal] = useState(false);
             const [selectedRepuestoId, setSelectedRepuestoId] = useState(1);
             const [stockCantidad, setStockCantidad] = useState(5);
             const [stockNota, setStockNota] = useState('Compra a proveedor');
+
+            // MODAL AGREGAR NUEVO PRODUCTO AL CATÁLOGO
+            const [showNewProductModal, setShowNewProductModal] = useState(false);
+            const [nuevoProdNombre, setNuevoProdNombre] = useState('');
+            const [nuevoProdMarca, setNuevoProdMarca] = useState('');
+            const [nuevoProdPrecio, setNuevoProdPrecio] = useState('');
+            const [nuevoProdExistencia, setNuevoProdExistencia] = useState('');
+            const [nuevoProdStockMin, setNuevoProdStockMin] = useState('5');
 
             const handleLogin = (e) => {
                 e.preventDefault();
@@ -137,17 +180,102 @@
                 }
             };
 
+            // CREAR CLIENTE Y MOTO
+            const handleGuardarClienteYMoto = (e) => {
+                e.preventDefault();
+                if (!nuevoClienteDpi || nuevoClienteDpi.length !== 13) {
+                    alert('El DPI debe contener exactamente 13 dígitos numericos.');
+                    return;
+                }
+
+                const existeCliente = clientes.some(c => c.dpi === nuevoClienteDpi);
+                if (!existeCliente) {
+                    const newCliente = {
+                        dpi: nuevoClienteDpi,
+                        nombre: nuevoClienteNombre,
+                        apellido: nuevoClienteApellido,
+                        telefono: nuevoClienteTel,
+                        email: nuevoClienteEmail,
+                        direccion: nuevoClienteDir
+                    };
+                    setClientes([...clientes, newCliente]);
+                }
+
+                if (nuevaPlaca) {
+                    const newMoto = {
+                        id: motocicletas.length + 1,
+                        clienteDpi: nuevoClienteDpi,
+                        placa: nuevaPlaca.toUpperCase(),
+                        marca: nuevaMarca,
+                        modelo: nuevoModelo,
+                        anio: parseInt(nuevoAnio),
+                        color: nuevoColor
+                    };
+                    setMotocicletas([...motocicletas, newMoto]);
+                }
+
+                alert('Cliente y Motocicleta registrados correctamente.');
+                setNuevoClienteDpi('');
+                setNuevoClienteNombre('');
+                setNuevoClienteApellido('');
+                setNuevoClienteTel('');
+                setNuevoClienteEmail('');
+                setNuevoClienteDir('');
+                setNuevaPlaca('');
+                setNuevaMarca('');
+                setNuevoModelo('');
+                setNuevoColor('');
+            };
+
+            // AGREGAR O QUITAR SERVICIOS EN CREAR ÓRDEN
+            const handleToggleServicioOrden = (servicio) => {
+                const existe = ordenServiciosSeleccionados.some(s => s.id === servicio.id);
+                if (existe) {
+                    setOrdenServiciosSeleccionados(ordenServiciosSeleccionados.filter(s => s.id !== servicio.id));
+                } else {
+                    setOrdenServiciosSeleccionados([...ordenServiciosSeleccionados, servicio]);
+                }
+            };
+
+            // CREAR ÓRDEN DE TRABAJO
+            const handleCrearOrdenTrabajo = (e) => {
+                e.preventDefault();
+                if (!ordenFalla.trim()) {
+                    alert('Debe ingresar la falla o problema reportado.');
+                    return;
+                }
+
+                const costoServicios = ordenServiciosSeleccionados.reduce((acc, s) => acc + s.precio, 0);
+                const nuevaOrden = {
+                    id: ordenes.length + 1,
+                    motocicletaId: parseInt(ordenMotoId),
+                    mecanicoId: parseInt(ordenMecanicoId),
+                    fechaIngreso: new Date().toLocaleString(),
+                    fechaEntrega: null,
+                    problemaReportado: ordenFalla,
+                    diagnostico: 'Pendiente de diagnóstico inicial.',
+                    estado: 'Pendiente',
+                    servicios: ordenServiciosSeleccionados,
+                    repuestos: [],
+                    costoTotal: costoServicios,
+                    saldoPendiente: costoServicios
+                };
+
+                setOrdenes([nuevaOrden, ...ordenes]);
+                setOrdenMensajeExito(`¡Órden de Trabajo #${nuevaOrden.id} generada exitosamente!`);
+                setOrdenFalla('');
+                setOrdenServiciosSeleccionados([]);
+                setTimeout(() => setOrdenMensajeExito(''), 4000);
+            };
+
             const handleAgregarStock = (e) => {
                 e.preventDefault();
                 const repuestoId = parseInt(selectedRepuestoId);
                 const cant = parseInt(stockCantidad);
 
-                // Actualizar stock de repuestos
                 setRepuestos(prev => prev.map(r => r.id === repuestoId ? { ...r, existencia: r.existencia + cant } : r));
-
                 const rep = repuestos.find(r => r.id === repuestoId);
 
-                // Registrar en log de auditoría
                 const newMov = {
                     id: movimientos.length + 1,
                     repuestoNombre: rep?.nombreRepuesto || 'Repuesto',
@@ -162,6 +290,59 @@
                 setShowStockModal(false);
                 setStockCantidad(5);
                 setStockNota('Compra a proveedor');
+            };
+
+            const handleCrearNuevoProducto = (e) => {
+                e.preventDefault();
+                const newId = repuestos.length + 1;
+                const cantInicial = parseInt(nuevoProdExistencia) || 0;
+                const precio = parseFloat(nuevoProdPrecio) || 0.0;
+                const stockMin = parseInt(nuevoProdStockMin) || 5;
+
+                const newRepuesto = {
+                    id: newId,
+                    nombreRepuesto: nuevoProdNombre,
+                    marca: nuevoProdMarca,
+                    precioVenta: precio,
+                    existencia: cantInicial,
+                    stockMinimo: stockMin
+                };
+
+                setRepuestos([...repuestos, newRepuesto]);
+
+                if (cantInicial > 0) {
+                    const newMov = {
+                        id: movimientos.length + 1,
+                        repuestoNombre: nuevoProdNombre,
+                        tipo: 'Entrada',
+                        cantidad: cantInicial,
+                        usuario: currentUser.username,
+                        fechaHora: new Date().toLocaleString(),
+                        descripcion: 'Creación de nuevo repuesto en catálogo'
+                    };
+                    setMovimientos([newMov, ...movimientos]);
+                }
+
+                setNuevoProdNombre('');
+                setNuevoProdMarca('');
+                setNuevoProdPrecio('');
+                setNuevoProdExistencia('');
+                setNuevoProdStockMin('5');
+                setShowNewProductModal(false);
+            };
+
+            const handleCambiarEstadoOrden = (ordenId, nuevoEstado, diagnosticoNota) => {
+                setOrdenes(prev => prev.map(o => {
+                    if (o.id === ordenId) {
+                        return {
+                            ...o,
+                            estado: nuevoEstado,
+                            diagnostico: diagnosticoNota !== undefined ? diagnosticoNota : o.diagnostico,
+                            fechaEntrega: nuevoEstado === 'Finalizada' ? new Date().toLocaleString() : o.fechaEntrega
+                        };
+                    }
+                    return o;
+                }));
             };
 
             if (!currentUser) {
@@ -234,10 +415,12 @@
                                 {currentUser.rol === 'jefe' && (
                                     <>
                                         <button onClick={()=>setActiveTab('dashboard')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📊 Dashboard General</button>
+                                        <button onClick={()=>setActiveTab('recepcion_ordenes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'recepcion_ordenes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📝 Crear Órden de Trabajo</button>
                                         <button onClick={()=>setActiveTab('clientes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'clientes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>👥 Clientes & Motos (DPI)</button>
                                         <button onClick={()=>setActiveTab('ordenes_jefe')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'ordenes_jefe' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>🛠️ Todas las Órdenes</button>
                                         <button onClick={()=>setActiveTab('inventario')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'inventario' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📦 Control Inventario</button>
-                                        <button onClick={()=>setActiveTab('auditoria')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'auditoria' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📜 Historial de Transacciones</button>
+                                        <button onClick={()=>setActiveTab('auditoria')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'auditoria' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📜 Historial Transacciones</button>
+                                        <button onClick={()=>setActiveTab('otros')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'otros' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📁 Otros (Vistas SQL)</button>
                                     </>
                                 )}
 
@@ -247,7 +430,7 @@
                                         <button onClick={()=>setActiveTab('clientes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'clientes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>👤 Registrar Cliente (DPI)</button>
                                         <button onClick={()=>setActiveTab('vista_pendientes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'vista_pendientes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>⏳ Órdenes Pendientes</button>
                                         <button onClick={()=>setActiveTab('inventario')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'inventario' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📦 Inventario & Stock</button>
-                                        <button onClick={()=>setActiveTab('auditoria')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'auditoria' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📜 Historial de Transacciones</button>
+                                        <button onClick={()=>setActiveTab('auditoria')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'auditoria' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📜 Historial Transacciones</button>
                                     </>
                                 )}
 
@@ -272,7 +455,7 @@
                                 <h2 className="text-xl font-bold text-white">Panel General de Control (Jefe)</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                     <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                                        <p className="text-xs text-slate-400 uppercase font-semibold">Órdenes Activas</p>
+                                        <p className="text-xs text-slate-400 uppercase font-semibold">Órdenes Registradas</p>
                                         <h3 className="text-3xl font-extrabold text-white mt-2">{ordenes.length}</h3>
                                     </div>
                                     <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
@@ -284,14 +467,442 @@
                                         <h3 className="text-3xl font-extrabold text-rose-500 mt-2">{repuestos.filter(r=>r.existencia<=r.stockMinimo).length}</h3>
                                     </div>
                                     <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                                        <p className="text-xs text-slate-400 uppercase font-semibold">Ingresos Registrados</p>
-                                        <h3 className="text-3xl font-extrabold text-emerald-400 mt-2">Q 100.00</h3>
+                                        <p className="text-xs text-slate-400 uppercase font-semibold">Motos Registradas</p>
+                                        <h3 className="text-3xl font-extrabold text-emerald-400 mt-2">{motocicletas.length}</h3>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* ÓRDEN DE TRABAJO */}
+                        {/* MÓDULO APERTURA / CREAR ÓRDEN DE TRABAJO */}
+                        {(activeTab === 'recepcion_ordenes') && (
+                            <div className="space-y-6 max-w-4xl">
+                                <div>
+                                    <h2 className="text-xl font-bold text-white">📝 Apertura y Creación de Órdenes de Trabajo</h2>
+                                    <p className="text-xs text-slate-400">Genera una nueva ficha de reparación para motocicletas registradas asignándole mecánico y servicios iniciales.</p>
+                                </div>
+
+                                {ordenMensajeExito && (
+                                    <div className="bg-emerald-500/10 border border-emerald-500/50 text-emerald-400 p-4 rounded-xl text-sm font-bold flex items-center gap-2">
+                                        ✅ {ordenMensajeExito}
+                                    </div>
+                                )}
+
+                                <form onSubmit={handleCrearOrdenTrabajo} className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-5">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-400 mb-1">Propietario / Cliente (por DPI)</label>
+                                            <select 
+                                                value={ordenClienteDpi} 
+                                                onChange={e => {
+                                                    setOrdenClienteDpi(e.target.value);
+                                                    const motosDelCliente = motocicletas.filter(m => m.clienteDpi === e.target.value);
+                                                    if (motosDelCliente.length > 0) setOrdenMotoId(motosDelCliente[0].id);
+                                                }}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-brand-500"
+                                            >
+                                                {clientes.map(c => (
+                                                    <option key={c.dpi} value={c.dpi}>{c.nombre} {c.apellido} - DPI: {c.dpi}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-400 mb-1">Motocicleta a Ingresar</label>
+                                            <select 
+                                                value={ordenMotoId} 
+                                                onChange={e => setOrdenMotoId(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-brand-500"
+                                            >
+                                                {motocicletas.filter(m => m.clienteDpi === ordenClienteDpi).map(m => (
+                                                    <option key={m.id} value={m.id}>{m.marca} {m.modelo} - Placa: {m.placa} ({m.color})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-400 mb-1">Mecánico Encargado Asignado</label>
+                                            <select 
+                                                value={ordenMecanicoId} 
+                                                onChange={e => setOrdenMecanicoId(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-brand-500"
+                                            >
+                                                {mecanicos.map(m => (
+                                                    <option key={m.id} value={m.id}>{m.nombre} {m.apellido} ({m.especialidad})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-400 mb-1">Problema / Falla Reportada por el Cliente</label>
+                                            <input 
+                                                type="text" 
+                                                value={ordenFalla}
+                                                onChange={e => setOrdenFalla(e.target.value)}
+                                                placeholder="Ej. Cambio de aceite, ruido en amortiguador..."
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-brand-500"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-400 mb-2">Seleccionar Servicios Solicitados</label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {servicios.map(s => {
+                                                const seleccionado = ordenServiciosSeleccionados.some(x => x.id === s.id);
+                                                return (
+                                                    <div 
+                                                        key={s.id}
+                                                        onClick={() => handleToggleServicioOrden(s)}
+                                                        className={`p-3 rounded-xl border text-xs cursor-pointer flex justify-between items-center transition ${seleccionado ? 'bg-brand-500/20 border-brand-500 text-white font-bold' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'}`}
+                                                    >
+                                                        <span>{s.nombre}</span>
+                                                        <span className="text-brand-400 font-mono">Q {s.precio.toFixed(2)}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 flex items-center justify-between border-t border-slate-800">
+                                        <div>
+                                            <p className="text-xs text-slate-400">Total Estimado en Servicios:</p>
+                                            <p className="text-xl font-extrabold text-emerald-400">
+                                                Q {ordenServiciosSeleccionados.reduce((acc, s) => acc + s.precio, 0).toFixed(2)}
+                                            </p>
+                                        </div>
+                                        <button type="submit" className="bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold px-6 py-3 rounded-xl text-sm transition">
+                                            📄 Generar y Guardar Órden de Trabajo
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+
+                        {/* MÓDULO CLIENTES Y MOTOS (ACCESIBLE PARA JEFE Y RECEPCIONISTA) */}
+                        {activeTab === 'clientes' && (
+                            <div className="space-y-6">
+                                <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                                    <h3 className="text-lg font-bold text-white mb-2">👤 Registrar Nuevo Cliente y Motocicleta (DPI de 13 dígitos)</h3>
+                                    <p className="text-xs text-slate-400 mb-4">Añade clientes a la base de datos utilizando directamente su código de DPI de Guatemala como ID principal.</p>
+
+                                    <form onSubmit={handleGuardarClienteYMoto} className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1">DPI del Cliente (13 dígitos) *</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={nuevoClienteDpi}
+                                                    onChange={e => setNuevoClienteDpi(e.target.value)}
+                                                    placeholder="Ej. 1901234560901"
+                                                    maxLength="13"
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500 font-mono"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1">Nombre *</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={nuevoClienteNombre}
+                                                    onChange={e => setNuevoClienteNombre(e.target.value)}
+                                                    placeholder="Nombre del cliente"
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1">Apellido *</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={nuevoClienteApellido}
+                                                    onChange={e => setNuevoClienteApellido(e.target.value)}
+                                                    placeholder="Apellido del cliente"
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1">Teléfono</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={nuevoClienteTel}
+                                                    onChange={e => setNuevoClienteTel(e.target.value)}
+                                                    placeholder="5555-0000"
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1">Email</label>
+                                                <input 
+                                                    type="email" 
+                                                    value={nuevoClienteEmail}
+                                                    onChange={e => setNuevoClienteEmail(e.target.value)}
+                                                    placeholder="correo@ejemplo.com"
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1">Dirección</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={nuevoClienteDir}
+                                                    onChange={e => setNuevoClienteDir(e.target.value)}
+                                                    placeholder="Zona / Municipio"
+                                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="border-t border-slate-800 pt-3">
+                                            <p className="text-xs font-bold text-brand-400 uppercase mb-2">🏍️ Datos de la Motocicleta del Cliente (Opcional)</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                                                <div>
+                                                    <input 
+                                                        type="text" 
+                                                        value={nuevaPlaca}
+                                                        onChange={e => setNuevaPlaca(e.target.value)}
+                                                        placeholder="Placa (M-123XYZ)"
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white uppercase"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <input 
+                                                        type="text" 
+                                                        value={nuevaMarca}
+                                                        onChange={e => setNuevaMarca(e.target.value)}
+                                                        placeholder="Marca (Yamaha)"
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <input 
+                                                        type="text" 
+                                                        value={nuevoModelo}
+                                                        onChange={e => setNuevoModelo(e.target.value)}
+                                                        placeholder="Modelo (FZ-25)"
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <input 
+                                                        type="number" 
+                                                        value={nuevoAnio}
+                                                        onChange={e => setNuevoAnio(e.target.value)}
+                                                        placeholder="Año"
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <input 
+                                                        type="text" 
+                                                        value={nuevoColor}
+                                                        onChange={e => setNuevoColor(e.target.value)}
+                                                        placeholder="Color"
+                                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition">
+                                            💾 Guardar Cliente y Motocicleta
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                                    <h3 className="text-lg font-bold text-white mb-4">Listado de Clientes Registrados</h3>
+                                    <table className="w-full text-left text-sm text-slate-300">
+                                        <thead className="bg-slate-800 text-xs uppercase text-slate-400">
+                                            <tr>
+                                                <th className="p-3">DPI (ID Cliente)</th>
+                                                <th className="p-3">Nombre Completo</th>
+                                                <th className="p-3">Teléfono</th>
+                                                <th className="p-3">Motocicleta Asociada</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-800">
+                                            {clientes.map(c => {
+                                                const motosDelCliente = motocicletas.filter(m => m.clienteDpi === c.dpi);
+                                                return (
+                                                    <tr key={c.dpi}>
+                                                        <td className="p-3 font-mono text-brand-400 font-bold">{c.dpi}</td>
+                                                        <td className="p-3 font-semibold text-white">{c.nombre} {c.apellido}</td>
+                                                        <td className="p-3">{c.telefono || 'N/A'}</td>
+                                                        <td className="p-3">
+                                                            {motosDelCliente.length > 0 ? (
+                                                                motosDelCliente.map(m => (
+                                                                    <span key={m.id} className="inline-block bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-xs text-slate-300 mr-1">
+                                                                        {m.marca} {m.modelo} ({m.placa})
+                                                                    </span>
+                                                                ))
+                                                            ) : (
+                                                                <span className="text-slate-500 italic">Sin vehículo</span>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* APARTADO "OTROS" DEL JEFE CON VISTAS DEL SISTEMA */}
+                        {currentUser.rol === 'jefe' && activeTab === 'otros' && (
+                            <div className="space-y-6">
+                                <div className="border-b border-slate-800 pb-4">
+                                    <h2 className="text-xl font-bold text-white mb-1">📁 Modulo de Otros / Consultas SQL Especializadas</h2>
+                                    <p className="text-xs text-slate-400">Accede directamente a todas las Vistas Relacionales (Views) generadas por la base de datos de MySQL Workbench.</p>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    <button onClick={()=>setOtrosSubTab('vista_ordenes_pendientes')} className={`px-3 py-2 rounded-xl text-xs font-bold transition ${otrosSubTab === 'vista_ordenes_pendientes' ? 'bg-brand-500 text-slate-950' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800'}`}>⏳ V. Órdenes Pendientes</button>
+                                    <button onClick={()=>setOtrosSubTab('vista_trabajos_por_mecanico')} className={`px-3 py-2 rounded-xl text-xs font-bold transition ${otrosSubTab === 'vista_trabajos_por_mecanico' ? 'bg-brand-500 text-slate-950' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800'}`}>🔧 V. Trabajos por Mecánico</button>
+                                    <button onClick={()=>setOtrosSubTab('vista_historial_mantenimiento')} className={`px-3 py-2 rounded-xl text-xs font-bold transition ${otrosSubTab === 'vista_historial_mantenimiento' ? 'bg-brand-500 text-slate-950' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800'}`}>📜 V. Historial Mantenimiento</button>
+                                    <button onClick={()=>setOtrosSubTab('vista_repuestos_baja_existencia')} className={`px-3 py-2 rounded-xl text-xs font-bold transition ${otrosSubTab === 'vista_repuestos_baja_existencia' ? 'bg-brand-500 text-slate-950' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800'}`}>⚠️ V. Stock Crítico</button>
+                                    <button onClick={()=>setOtrosSubTab('vista_motocicletas_en_taller')} className={`px-3 py-2 rounded-xl text-xs font-bold transition ${otrosSubTab === 'vista_motocicletas_en_taller' ? 'bg-brand-500 text-slate-950' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800'}`}>🏍️ V. Motos en Taller</button>
+                                </div>
+
+                                <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                                    {otrosSubTab === 'vista_ordenes_pendientes' && (
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-bold text-white font-mono uppercase">VIEW: vista_ordenes_pendientes</h4>
+                                            <table className="w-full text-left text-xs text-slate-300">
+                                                <thead className="bg-slate-800 uppercase text-slate-400">
+                                                    <tr><th className="p-2">ID</th><th className="p-2">Cliente</th><th className="p-2">DPI</th><th className="p-2">Moto</th><th className="p-2">Mecánico</th><th className="p-2">Estado</th></tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800">
+                                                    {ordenes.filter(o=>o.estado!=='Finalizada').map(o=>{
+                                                        const m = motocicletas.find(x=>x.id===o.motocicletaId);
+                                                        const c = clientes.find(x=>x.dpi===m?.clienteDpi);
+                                                        const mec = mecanicos.find(x=>x.id===o.mecanicoId);
+                                                        return (
+                                                            <tr key={o.id}>
+                                                                <td className="p-2 font-mono text-brand-400 font-bold">#{o.id}</td>
+                                                                <td className="p-2 font-bold text-white">{c?.nombre} {c?.apellido}</td>
+                                                                <td className="p-2 font-mono text-slate-400">{c?.dpi}</td>
+                                                                <td className="p-2">{m?.marca} {m?.modelo} ({m?.placa})</td>
+                                                                <td className="p-2">{mec?.nombre} {mec?.apellido}</td>
+                                                                <td className="p-2"><span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-bold">{o.estado}</span></td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+
+                                    {otrosSubTab === 'vista_trabajos_por_mecanico' && (
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-bold text-white font-mono uppercase">VIEW: vista_trabajos_por_mecanico</h4>
+                                            <table className="w-full text-left text-xs text-slate-300">
+                                                <thead className="bg-slate-800 uppercase text-slate-400">
+                                                    <tr><th className="p-2">Mecánico</th><th className="p-2">Orden #</th><th className="p-2">Placa</th><th className="p-2">Falla Reportada</th><th className="p-2">Estado</th></tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800">
+                                                    {ordenes.map(o=>{
+                                                        const mec = mecanicos.find(x=>x.id===o.mecanicoId);
+                                                        const m = motocicletas.find(x=>x.id===o.motocicletaId);
+                                                        return (
+                                                            <tr key={o.id}>
+                                                                <td className="p-2 font-bold text-white">{mec?.nombre} {mec?.apellido}</td>
+                                                                <td className="p-2 font-mono text-brand-400">#{o.id}</td>
+                                                                <td className="p-2 font-mono">{m?.placa}</td>
+                                                                <td className="p-2">{o.problemaReportado}</td>
+                                                                <td className="p-2 font-bold">{o.estado}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+
+                                    {otrosSubTab === 'vista_historial_mantenimiento' && (
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-bold text-white font-mono uppercase">VIEW: vista_historial_mantenimiento</h4>
+                                            <table className="w-full text-left text-xs text-slate-300">
+                                                <thead className="bg-slate-800 uppercase text-slate-400">
+                                                    <tr><th className="p-2">Placa</th><th className="p-2">Motocicleta</th><th className="p-2">Servicio Realizado</th><th className="p-2">Diagnóstico Mecánico</th></tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800">
+                                                    {ordenes.map(o=>{
+                                                        const m = motocicletas.find(x=>x.id===o.motocicletaId);
+                                                        return (
+                                                            <tr key={o.id}>
+                                                                <td className="p-2 font-mono text-brand-400 font-bold">{m?.placa}</td>
+                                                                <td className="p-2">{m?.marca} {m?.modelo}</td>
+                                                                <td className="p-2">{o.servicios.map(s=>s.nombre).join(', ')}</td>
+                                                                <td className="p-2 text-slate-400 italic">{o.diagnostico || 'Sin observaciones registrado'}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+
+                                    {otrosSubTab === 'vista_repuestos_baja_existencia' && (
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-bold text-white font-mono uppercase">VIEW: vista_repuestos_baja_existencia</h4>
+                                            <table className="w-full text-left text-xs text-slate-300">
+                                                <thead className="bg-slate-800 uppercase text-slate-400">
+                                                    <tr><th className="p-2">Repuesto</th><th className="p-2">Marca</th><th className="p-2">Existencia</th><th className="p-2">Mínimo</th><th className="p-2">Estado</th></tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800">
+                                                    {repuestos.filter(r=>r.existencia<=r.stockMinimo).map(r=>(
+                                                        <tr key={r.id}>
+                                                            <td className="p-2 font-bold text-white">{r.nombreRepuesto}</td>
+                                                            <td className="p-2">{r.marca}</td>
+                                                            <td className="p-2 font-bold text-rose-500">{r.existencia}</td>
+                                                            <td className="p-2 text-slate-400">{r.stockMinimo}</td>
+                                                            <td className="p-2"><span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Urgente Reabastecer</span></td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+
+                                    {otrosSubTab === 'vista_motocicletas_en_taller' && (
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-bold text-white font-mono uppercase">VIEW: vista_motocicletas_en_taller</h4>
+                                            <table className="w-full text-left text-xs text-slate-300">
+                                                <thead className="bg-slate-800 uppercase text-slate-400">
+                                                    <tr><th className="p-2">Placa</th><th className="p-2">Vehículo</th><th className="p-2">Propietario (DPI)</th><th className="p-2">Fecha Ingreso</th><th className="p-2">Estado Actual</th></tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800">
+                                                    {ordenes.map(o=>{
+                                                        const m = motocicletas.find(x=>x.id===o.motocicletaId);
+                                                        const c = clientes.find(x=>x.dpi===m?.clienteDpi);
+                                                        return (
+                                                            <tr key={o.id}>
+                                                                <td className="p-2 font-mono text-brand-400 font-bold">{m?.placa}</td>
+                                                                <td className="p-2 text-white font-semibold">{m?.marca} {m?.modelo} ({m?.color})</td>
+                                                                <td className="p-2">{c?.nombre} {c?.apellido} ({c?.dpi})</td>
+                                                                <td className="p-2 text-slate-400">{o.fechaIngreso}</td>
+                                                                <td className="p-2"><span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-bold">{o.estado}</span></td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ÓRDEN DE TRABAJO GENERAL */}
                         {(activeTab === 'ordenes_jefe' || activeTab === 'vista_pendientes') && (
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold text-white">Órdenes de Trabajo Registradas</h3>
@@ -306,9 +917,18 @@
                                                     <h4 className="text-white font-bold">{moto?.marca} {moto?.modelo} ({moto?.placa})</h4>
                                                     <p className="text-xs text-slate-400">Mecánico: {mec ? `${mec.nombre} ${mec.apellido}` : 'Sin asignar'}</p>
                                                     <p className="text-xs text-slate-300 mt-1">Falla: {o.problemaReportado}</p>
+                                                    {o.servicios.length > 0 && (
+                                                        <div className="mt-2 flex flex-wrap gap-1">
+                                                            {o.servicios.map(s => (
+                                                                <span key={s.id} className="bg-slate-950 text-slate-300 border border-slate-800 text-[10px] px-2 py-0.5 rounded">
+                                                                    {s.nombre}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="text-right">
-                                                    <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-xs font-bold">{o.estado}</span>
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${o.estado === 'Finalizada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>{o.estado}</span>
                                                     <p className="text-sm font-extrabold text-emerald-400 mt-2">Total: Q {o.costoTotal.toFixed(2)}</p>
                                                 </div>
                                             </div>
@@ -318,18 +938,26 @@
                             </div>
                         )}
 
-                        {/* MÓDULO DE INVENTARIO CON BOTÓN AGREGAR STOCK (JEFE Y RECEPCIONISTA) */}
+                        {/* MÓDULO DE INVENTARIO CON BOTONES AGREGAR PRODUCTO Y SUMAR STOCK */}
                         {(activeTab === 'inventario' || activeTab === 'mecanico_stock') && (
                             <div className="space-y-4">
-                                <div className="flex justify-between items-center">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                     <h3 className="text-lg font-bold text-white">Stock e Inventario de Repuestos</h3>
                                     {(currentUser.rol === 'jefe' || currentUser.rol === 'recepcionista') && (
-                                        <button 
-                                            onClick={() => setShowStockModal(true)} 
-                                            className="bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-2"
-                                        >
-                                            ➕ Agregar Stock / Reabastecer
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => setShowNewProductModal(true)} 
+                                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
+                                            >
+                                                ✨ Crear Nuevo Producto
+                                            </button>
+                                            <button 
+                                                onClick={() => setShowStockModal(true)} 
+                                                className="bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
+                                            >
+                                                ➕ Sumar Stock Existente
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
 
@@ -337,6 +965,7 @@
                                     {repuestos.map(r => (
                                         <div key={r.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
                                             <div>
+                                                <span className="text-[10px] text-slate-500 font-mono">ID #{r.id}</span>
                                                 <h4 className="font-bold text-white">{r.nombreRepuesto}</h4>
                                                 <p className="text-xs text-slate-400">Marca: {r.marca}</p>
                                                 <p className="text-xs text-slate-400">Precio Venta: Q {r.precioVenta.toFixed(2)}</p>
@@ -354,7 +983,7 @@
                             </div>
                         )}
 
-                        {/* VISTA HISTORIAL DE TRANSACCIONES / AUDITORÍA */}
+                        {/* HISTORIAL DE TRANSACCIONES */}
                         {activeTab === 'auditoria' && (
                             <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
                                 <div>
@@ -395,58 +1024,138 @@
                             </div>
                         )}
 
-                        {/* CLIENTES */}
-                        {activeTab === 'clientes' && (
-                            <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                                <h3 className="text-lg font-bold text-white mb-4">Registro de Clientes (ID como DPI)</h3>
-                                <table className="w-full text-left text-sm text-slate-300">
-                                    <thead className="bg-slate-800 text-xs uppercase text-slate-400">
-                                        <tr>
-                                            <th className="p-3">DPI (ID Cliente)</th>
-                                            <th className="p-3">Nombre</th>
-                                            <th className="p-3">Teléfono</th>
-                                            <th className="p-3">Motocicleta</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-800">
-                                        {clientes.map(c => {
-                                            const moto = motocicletas.find(m => m.clienteDpi === c.dpi);
-                                            return (
-                                                <tr key={c.dpi}>
-                                                    <td className="p-3 font-mono text-brand-400 font-bold">{c.dpi}</td>
-                                                    <td className="p-3 font-semibold text-white">{c.nombre} {c.apellido}</td>
-                                                    <td className="p-3">{c.telefono}</td>
-                                                    <td className="p-3">{moto ? `${moto.marca} ${moto.modelo} (${moto.placa})` : 'Sin registrar'}</td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-
-                        {/* TRABAJOS DE MECÁNICO */}
+                        {/* MÓDULO DEL MECÁNICO: ACTUALIZACIÓN DE ESTADOS */}
                         {currentUser.rol === 'mecanico' && activeTab === 'mecanico_trabajos' && (
                             <div className="space-y-4">
-                                <h3 className="text-lg font-bold text-white">Trabajos Asignados a {currentUser.nombre}</h3>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white">Trabajos Asignados a {currentUser.nombre}</h3>
+                                    <p className="text-xs text-slate-400">Permite cambiar en tiempo real el estado de avance de la reparación y agregar notas de diagnóstico.</p>
+                                </div>
+
                                 {ordenes.filter(o => o.mecanicoId === currentUser.mecanicoId).map(o => {
                                     const moto = motocicletas.find(m => m.id === o.motocicletaId);
                                     return (
-                                        <div key={o.id} className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                                            <div className="flex justify-between items-start mb-2">
+                                        <div key={o.id} className="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+                                            <div className="flex justify-between items-start">
                                                 <div>
-                                                    <span className="text-xs font-mono text-brand-400 font-bold">ÓRDEN #{o.id}</span>
-                                                    <h4 className="text-white font-bold">{moto?.marca} {moto?.modelo} ({moto?.placa})</h4>
+                                                    <span className="text-xs font-mono text-brand-400 font-bold">ÓRDEN DE TRABAJO #{o.id}</span>
+                                                    <h4 className="text-white font-bold text-lg">{moto?.marca} {moto?.modelo} ({moto?.placa})</h4>
+                                                    <p className="text-xs text-slate-400">Fecha Ingreso: {o.fechaIngreso}</p>
                                                 </div>
-                                                <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-full text-xs font-bold">{o.estado}</span>
+
+                                                <div>
+                                                    <label className="block text-[10px] text-slate-400 font-bold uppercase mb-1">Cambiar Estado:</label>
+                                                    <select 
+                                                        value={o.estado} 
+                                                        onChange={(e) => handleCambiarEstadoOrden(o.id, e.target.value)}
+                                                        className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-brand-400 focus:outline-none"
+                                                    >
+                                                        <option value="Pendiente">⏳ Pendiente</option>
+                                                        <option value="En Proceso">🔧 En Proceso</option>
+                                                        <option value="Finalizada">✅ Finalizada</option>
+                                                    </select>
+                                                </div>
                                             </div>
-                                            <p className="text-xs text-slate-300 mb-4 bg-slate-950 p-3 rounded-xl border border-slate-800/80"><strong>Problema:</strong> {o.problemaReportado}</p>
+
+                                            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 text-xs space-y-2">
+                                                <p className="text-slate-300"><strong>Falla Reportada:</strong> {o.problemaReportado}</p>
+                                                <div>
+                                                    <label className="block text-slate-400 font-bold mb-1">Diagnóstico / Avance del Mecánico:</label>
+                                                    <textarea 
+                                                        value={o.diagnostico || ''} 
+                                                        onChange={(e) => handleCambiarEstadoOrden(o.id, o.estado, e.target.value)}
+                                                        placeholder="Escriba aquí sus observaciones técnicas..."
+                                                        className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-brand-500"
+                                                        rows="2"
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
                                     );
                                 })}
                             </div>
                         )}
                     </main>
+
+                    {/* MODAL CREAR NUEVO PRODUCTO EN CATÁLOGO */}
+                    {showNewProductModal && (
+                        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-md w-full space-y-4">
+                                <h3 className="text-lg font-bold text-white">✨ Registrar Nuevo Repuesto en Catálogo</h3>
+                                <form onSubmit={handleCrearNuevoProducto} className="space-y-3">
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">Nombre del Repuesto / Producto</label>
+                                        <input 
+                                            type="text" 
+                                            value={nuevoProdNombre} 
+                                            onChange={e => setNuevoProdNombre(e.target.value)}
+                                            placeholder="Ej. Kit de Arrastre, Bujía C7HSA..."
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500" 
+                                            required 
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Marca</label>
+                                            <input 
+                                                type="text" 
+                                                value={nuevoProdMarca} 
+                                                onChange={e => setNuevoProdMarca(e.target.value)}
+                                                placeholder="Ej. NGK, Honda..."
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500" 
+                                                required 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Precio Venta (Q)</label>
+                                            <input 
+                                                type="number" 
+                                                step="0.01"
+                                                min="0"
+                                                value={nuevoProdPrecio} 
+                                                onChange={e => setNuevoProdPrecio(e.target.value)}
+                                                placeholder="0.00"
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500" 
+                                                required 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Stock Inicial</label>
+                                            <input 
+                                                type="number" 
+                                                min="0"
+                                                value={nuevoProdExistencia} 
+                                                onChange={e => setNuevoProdExistencia(e.target.value)}
+                                                placeholder="Unidades iniciales"
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500" 
+                                                required 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Stock Mínimo (Alerta)</label>
+                                            <input 
+                                                type="number" 
+                                                min="1"
+                                                value={nuevoProdStockMin} 
+                                                onChange={e => setNuevoProdStockMin(e.target.value)}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500" 
+                                                required 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2 justify-end pt-3">
+                                        <button type="button" onClick={() => setShowNewProductModal(false)} className="bg-slate-800 text-slate-300 text-xs px-4 py-2.5 rounded-xl font-bold">Cancelar</button>
+                                        <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-4 py-2.5 rounded-xl font-bold">Guardar Producto</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
 
                     {/* MODAL REABASTECER STOCK */}
                     {showStockModal && (
@@ -506,258 +1215,3 @@
     </script>
 </body>
 </html>
-```
-
-```sql:Script MySQL Taller Moto Mapache con Roles y DPI:script_moto_mapache_v2.sql
--- ============================================================
--- BASE DE DATOS: TALLER MOTO MAPACHE (V2 - CON AUDITORÍA)
--- ============================================================
-DROP DATABASE IF EXISTS moto_mapache_db;
-CREATE DATABASE moto_mapache_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE moto_mapache_db;
-
--- ------------------------------------------------------------
--- LIMPIEZA PREVIA DE VISTAS Y TABLAS
--- ------------------------------------------------------------
-DROP VIEW IF EXISTS vista_auditoria_inventario;
-DROP VIEW IF EXISTS vista_motocicletas_en_taller;
-DROP VIEW IF EXISTS vista_ingresos_por_periodo;
-DROP VIEW IF EXISTS vista_trabajos_por_mecanico;
-DROP VIEW IF EXISTS vista_repuestos_baja_existencia;
-DROP VIEW IF EXISTS vista_historial_mantenimiento;
-DROP VIEW IF EXISTS vista_ordenes_pendientes;
-
-DROP TABLE IF EXISTS pagos;
-DROP TABLE IF EXISTS movimientos_inventario;
-DROP TABLE IF EXISTS orden_detalle_repuestos;
-DROP TABLE IF EXISTS orden_detalle_servicios;
-DROP TABLE IF EXISTS ordenes_trabajo;
-DROP TABLE IF EXISTS repuestos;
-DROP TABLE IF EXISTS servicios;
-DROP TABLE IF EXISTS usuarios;
-DROP TABLE IF EXISTS mecanicos;
-DROP TABLE IF EXISTS motocicletas;
-DROP TABLE IF EXISTS clientes;
-DROP TABLE IF EXISTS roles;
-
--- ------------------------------------------------------------
--- 1. TABLAS MAESTRAS Y DE AUTENTICACIÓN
--- ------------------------------------------------------------
-
-CREATE TABLE roles (
-    rol_id INT AUTO_INCREMENT PRIMARY KEY,
-    nombre_rol VARCHAR(50) UNIQUE NOT NULL,
-    descripcion VARCHAR(255)
-);
-
-CREATE TABLE clientes (
-    dpi VARCHAR(13) PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    apellido VARCHAR(100) NOT NULL,
-    telefono VARCHAR(20),
-    email VARCHAR(100),
-    direccion TEXT,
-    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE motocicletas (
-    motocicleta_id INT AUTO_INCREMENT PRIMARY KEY,
-    cliente_dpi VARCHAR(13) NOT NULL,
-    placa VARCHAR(15) UNIQUE NOT NULL,
-    marca VARCHAR(50) NOT NULL,
-    modelo VARCHAR(50) NOT NULL,
-    anio INT NOT NULL,
-    color VARCHAR(30),
-    caracteristicas TEXT,
-    FOREIGN KEY (cliente_dpi) REFERENCES clientes(dpi) ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
-CREATE TABLE mecanicos (
-    mecanico_id INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    apellido VARCHAR(100) NOT NULL,
-    especialidad VARCHAR(100),
-    activo BOOLEAN DEFAULT TRUE
-);
-
-CREATE TABLE usuarios (
-    usuario_id INT AUTO_INCREMENT PRIMARY KEY,
-    rol_id INT NOT NULL,
-    mecanico_id INT NULL,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    activo BOOLEAN DEFAULT TRUE,
-    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (rol_id) REFERENCES roles(rol_id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    FOREIGN KEY (mecanico_id) REFERENCES mecanicos(mecanico_id) ON DELETE SET NULL
-);
-
-CREATE TABLE servicios (
-    servicio_id INT AUTO_INCREMENT PRIMARY KEY,
-    nombre_servicio VARCHAR(100) NOT NULL,
-    descripcion TEXT,
-    precio_base DECIMAL(10,2) NOT NULL CHECK (precio_base >= 0)
-);
-
-CREATE TABLE repuestos (
-    repuesto_id INT AUTO_INCREMENT PRIMARY KEY,
-    nombre_repuesto VARCHAR(100) NOT NULL,
-    marca VARCHAR(50),
-    precio_venta DECIMAL(10,2) NOT NULL CHECK (precio_venta >= 0),
-    existencia INT NOT NULL DEFAULT 0 CHECK (existencia >= 0),
-    stock_minimo INT NOT NULL DEFAULT 5 CHECK (stock_minimo >= 0)
-);
-
--- ------------------------------------------------------------
--- 2. TABLAS TRANSACCIONALES CON AUDITORÍA
--- ------------------------------------------------------------
-
-CREATE TABLE ordenes_trabajo (
-    orden_id INT AUTO_INCREMENT PRIMARY KEY,
-    motocicleta_id INT NOT NULL,
-    mecanico_id INT NULL,
-    fecha_ingreso DATETIME DEFAULT CURRENT_TIMESTAMP,
-    fecha_entrega DATETIME NULL,
-    problema_reportado TEXT NOT NULL,
-    diagnostico TEXT,
-    observaciones TEXT,
-    estado ENUM('Pendiente', 'En Proceso', 'Finalizada', 'Cancelada') DEFAULT 'Pendiente',
-    costo_total DECIMAL(10,2) DEFAULT 0.00,
-    saldo_pendiente DECIMAL(10,2) DEFAULT 0.00,
-    FOREIGN KEY (motocicleta_id) REFERENCES motocicletas(motocicleta_id),
-    FOREIGN KEY (mecanico_id) REFERENCES mecanicos(mecanico_id)
-);
-
-CREATE TABLE orden_detalle_servicios (
-    detalle_servicio_id INT AUTO_INCREMENT PRIMARY KEY,
-    orden_id INT NOT NULL,
-    servicio_id INT NOT NULL,
-    mecanico_id INT NULL,
-    precio_aplicado DECIMAL(10,2) NOT NULL CHECK (precio_aplicado >= 0),
-    observaciones TEXT,
-    FOREIGN KEY (orden_id) REFERENCES ordenes_trabajo(orden_id) ON DELETE CASCADE,
-    FOREIGN KEY (servicio_id) REFERENCES servicios(servicio_id),
-    FOREIGN KEY (mecanico_id) REFERENCES mecanicos(mecanico_id)
-);
-
-CREATE TABLE orden_detalle_repuestos (
-    detalle_repuesto_id INT AUTO_INCREMENT PRIMARY KEY,
-    orden_id INT NOT NULL,
-    repuesto_id INT NOT NULL,
-    cantidad INT NOT NULL CHECK (cantidad > 0),
-    precio_unitario_aplicado DECIMAL(10,2) NOT NULL CHECK (precio_unitario_aplicado >= 0),
-    subtotal DECIMAL(10,2) GENERATED ALWAYS AS (cantidad * precio_unitario_aplicado) STORED,
-    FOREIGN KEY (orden_id) REFERENCES ordenes_trabajo(orden_id) ON DELETE CASCADE,
-    FOREIGN KEY (repuesto_id) REFERENCES repuestos(repuesto_id)
-);
-
--- TABLA DE AUDITORÍA Y REGISTRO DE MOVIMIENTOS
-CREATE TABLE movimientos_inventario (
-    movimiento_id INT AUTO_INCREMENT PRIMARY KEY,
-    repuesto_id INT NOT NULL,
-    usuario_registro VARCHAR(50) DEFAULT 'sistema', -- QUIEN AGREGÓ/USÓ EL PRODUCTO
-    tipo_movimiento ENUM('Entrada', 'Salida') NOT NULL,
-    cantidad INT NOT NULL CHECK (cantidad > 0),
-    fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP, -- FECHA Y HORA
-    descripcion TEXT,
-    FOREIGN KEY (repuesto_id) REFERENCES repuestos(repuesto_id)
-);
-
-CREATE TABLE pagos (
-    pago_id INT AUTO_INCREMENT PRIMARY KEY,
-    orden_id INT NOT NULL,
-    monto DECIMAL(10,2) NOT NULL CHECK (monto > 0),
-    fecha_pago DATETIME DEFAULT CURRENT_TIMESTAMP,
-    metodo_pago ENUM('Efectivo', 'Tarjeta', 'Transferencia') NOT NULL,
-    FOREIGN KEY (orden_id) REFERENCES ordenes_trabajo(orden_id)
-);
-
--- ------------------------------------------------------------
--- 3. VISTA NUEVA: AUDITORÍA DE INVENTARIO
--- ------------------------------------------------------------
-CREATE VIEW vista_auditoria_inventario AS
-SELECT 
-    mi.movimiento_id,
-    r.nombre_repuesto,
-    r.marca,
-    mi.tipo_movimiento,
-    mi.cantidad,
-    mi.usuario_registro,
-    mi.fecha_hora,
-    mi.descripcion
-FROM movimientos_inventario mi
-JOIN repuestos r ON mi.repuesto_id = r.repuesto_id
-ORDER BY mi.fecha_hora DESC;
-
--- VISTAS COMPLEMENTARIAS
-CREATE VIEW vista_ordenes_pendientes AS
-SELECT 
-    ot.orden_id,
-    CONCAT(c.nombre, ' ', c.apellido) AS cliente,
-    c.dpi AS cliente_dpi,
-    c.telefono,
-    CONCAT(m.marca, ' ', m.modelo, ' (', m.placa, ')') AS motocicleta,
-    ot.fecha_ingreso,
-    ot.problema_reportado,
-    ot.estado,
-    CONCAT(mec.nombre, ' ', mec.apellido) AS mecanico_asignado
-FROM ordenes_trabajo ot
-JOIN motocicletas m ON ot.motocicleta_id = m.motocicleta_id
-JOIN clientes c ON m.cliente_dpi = c.dpi
-LEFT JOIN mecanicos mec ON ot.mecanico_id = mec.mecanico_id
-WHERE ot.estado IN ('Pendiente', 'En Proceso');
-
--- ------------------------------------------------------------
--- 4. POBLAMIENTO INICIAL CON TRANSACCIONES
--- ------------------------------------------------------------
-INSERT INTO roles (nombre_rol, descripcion) VALUES
-('Jefe', 'Acceso total y administración general'),
-('Recepcionista', 'Atención, ingreso de clientes, motos, órdenes y cobros'),
-('Mecanico', 'Consulta de tareas asignadas y reporte de avance');
-
-INSERT INTO clientes (dpi, nombre, apellido, telefono, email, direccion) VALUES
-('1901234560901', 'Carlos', 'Mendoza', '5551-2345', 'carlos@gmail.com', 'Zona 1, Quetzaltenango'),
-('2010987650901', 'Ana', 'Gómez', '5558-7654', 'ana.gomez@gmail.com', 'Zona 3, Quetzaltenango');
-
-INSERT INTO motocicletas (cliente_dpi, placa, marca, modelo, anio, color, caracteristicas) VALUES
-('1901234560901', 'M-123ABC', 'Yamaha', 'FZ 25', 2022, 'Negro', 'Freno ABS delantero'),
-('2010987650901', 'M-987XYZ', 'Honda', 'Navi 110', 2021, 'Rojo', 'Scooter automática');
-
-INSERT INTO mecanicos (nombre, apellido, especialidad, activo) VALUES
-('Juan', 'Pérez', 'Sistemas Eléctricos y Motor', TRUE),
-('Luis', 'Ramírez', 'Frenos y Mantenimiento General', TRUE);
-
-INSERT INTO usuarios (rol_id, mecanico_id, username, password_hash) VALUES
-(1, NULL, 'jefe_admin', '123'),
-(2, NULL, 'recepcion1', '123'),
-(3, 1, 'mecanico_juan', '123'),
-(3, 2, 'mecanico_luis', '123');
-
-INSERT INTO servicios (nombre_servicio, descripcion, precio_base) VALUES
-('Cambio de Aceite', 'Sustitución de lubricante y filtro', 75.00),
-('Revisión de Frenos', 'Limpieza y ajuste de pastillas/zapatas', 100.00);
-
-INSERT INTO repuestos (nombre_repuesto, marca, precio_venta, existencia, stock_minimo) VALUES
-('Aceite Yamalube 20W50', 'Yamalube', 65.00, 20, 5),
-('Pastillas de Freno', 'Yamaha', 120.00, 3, 5);
-
-INSERT INTO movimientos_inventario (repuesto_id, usuario_registro, tipo_movimiento, cantidad, fecha_hora, descripcion) VALUES
-(1, 'jefe_admin', 'Entrada', 20, '2026-03-01 08:00:00', 'Carga inicial de inventario'),
-(2, 'recepcion1', 'Entrada', 5, '2026-03-01 08:30:00', 'Reabastecimiento de repuestos'),
-(2, 'mecanico_juan', 'Salida', 2, '2026-03-01 10:00:00', 'Uso en Órden de Trabajo #1');
-
-INSERT INTO ordenes_trabajo (motocicleta_id, mecanico_id, fecha_ingreso, problema_reportado, estado, costo_total, saldo_pendiente) VALUES
-(1, 1, NOW(), 'Ruido extraño al frenar y requiere cambio de aceite', 'En Proceso', 140.00, 40.00),
-(2, 2, NOW(), 'Ajuste general de frenos traseros', 'Pendiente', 100.00, 100.00);
-```
-
-### 📋 Resumen de cambios aplicados:
-
-1. **Reabastecimiento de Stock (Jefe y Recepcionista):** Se incorporó un botón **"➕ Agregar Stock / Reabastecer"** en la pestaña de inventario para que el `jefe_admin` y `recepcion1` incrementen existencias.
-2. **Vista de Auditoría de Transacciones:** En el menú se reemplazó la categoría por **`📜 Historial de Transacciones`**, la cual muestra una tabla con:
-   * **Nombre del producto**
-   * **Tipo de movimiento (`Entrada` o `Salida`)**
-   * **Cantidad agregada/usada**
-   * **Usuario que lo registró (`@jefe_admin`, `@recepcion1`, etc.)**
-   * **Fecha y hora exacta del registro**
-3. **Carga de Datos Iniciales Visibles:** Se precargaron órdenes de trabajo y movimientos de almacén de prueba para que los módulos no luzcan vacíos al hacer pruebas.
