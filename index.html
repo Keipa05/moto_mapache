@@ -119,6 +119,7 @@
 
             const [activeTab, setActiveTab] = useState('dashboard');
             const [otrosSubTab, setOtrosSubTab] = useState('vista_ordenes_pendientes');
+            const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
             const [clientes, setClientes] = useState(initialClientes);
             const [motocicletas, setMotocicletas] = useState(initialMotocicletas);
@@ -127,6 +128,9 @@
             const [repuestos, setRepuestos] = useState(initialRepuestos);
             const [ordenes, setOrdenes] = useState(initialOrdenes);
             const [movimientos, setMovimientos] = useState(initialMovimientos);
+
+            // ESTADO MODAL EDITAR CLIENTE
+            const [editingCliente, setEditingCliente] = useState(null);
 
             // FORMULARIO AGREGAR CLIENTE Y MOTO
             const [nuevoClienteDpi, setNuevoClienteDpi] = useState('');
@@ -184,7 +188,7 @@
             const handleGuardarClienteYMoto = (e) => {
                 e.preventDefault();
                 if (!nuevoClienteDpi || nuevoClienteDpi.length !== 13) {
-                    alert('El DPI debe contener exactamente 13 dígitos numericos.');
+                    alert('El DPI debe contener exactamente 13 dígitos numéricos.');
                     return;
                 }
 
@@ -225,6 +229,28 @@
                 setNuevaMarca('');
                 setNuevoModelo('');
                 setNuevoColor('');
+            };
+
+            // MODIFICAR CLIENTE
+            const handleActualizarCliente = (e) => {
+                e.preventDefault();
+                setClientes(prev => prev.map(c => c.dpi === editingCliente.dpi ? editingCliente : c));
+                setEditingCliente(null);
+            };
+
+            // ELIMINAR CLIENTE
+            const handleEliminarCliente = (dpiTarget) => {
+                if (window.confirm(`¿Está seguro de eliminar al cliente con DPI ${dpiTarget}? Se eliminarán sus motocicletas asociadas.`)) {
+                    setClientes(prev => prev.filter(c => c.dpi !== dpiTarget));
+                    setMotocicletas(prev => prev.filter(m => m.clienteDpi !== dpiTarget));
+                }
+            };
+
+            // ELIMINAR MOTOCICLETA
+            const handleEliminarMoto = (motoId) => {
+                if (window.confirm('¿Está seguro de eliminar esta motocicleta?')) {
+                    setMotocicletas(prev => prev.filter(m => m.id !== motoId));
+                }
             };
 
             // AGREGAR O QUITAR SERVICIOS EN CREAR ÓRDEN
@@ -348,7 +374,7 @@
             if (!currentUser) {
                 return (
                     <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
-                        <div className="w-full max-w-md bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl">
+                        <div className="w-full max-w-md bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-3xl shadow-2xl">
                             <div className="text-center mb-6">
                                 <span className="text-5xl block mb-2">🦝</span>
                                 <h1 className="text-2xl font-bold text-white">Moto Mapache</h1>
@@ -393,9 +419,77 @@
                 );
             }
 
+            const navigationButtons = (
+                <>
+                    {(currentUser.rol === 'jefe') && (
+                        <>
+                            <button onClick={()=>{setActiveTab('dashboard'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📊 Dashboard General</button>
+                            <button onClick={()=>{setActiveTab('recepcion_ordenes'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'recepcion_ordenes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📝 Crear Órden de Trabajo</button>
+                            <button onClick={()=>{setActiveTab('clientes'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'clientes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>👥 Clientes & Motos (DPI)</button>
+                            <button onClick={()=>{setActiveTab('ordenes_jefe'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'ordenes_jefe' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>🛠️ Todas las Órdenes</button>
+                            <button onClick={()=>{setActiveTab('inventario'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'inventario' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📦 Control Inventario</button>
+                            <button onClick={()=>{setActiveTab('auditoria'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'auditoria' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📜 Historial Transacciones</button>
+                            <button onClick={()=>{setActiveTab('otros'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'otros' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📁 Otros (Vistas SQL)</button>
+                        </>
+                    )}
+
+                    {(currentUser.rol === 'recepcionista') && (
+                        <>
+                            <button onClick={()=>{setActiveTab('recepcion_ordenes'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'recepcion_ordenes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📝 Crear Órden de Trabajo</button>
+                            <button onClick={()=>{setActiveTab('clientes'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'clientes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>👥 Clientes & Motos (DPI)</button>
+                            <button onClick={()=>{setActiveTab('vista_pendientes'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'vista_pendientes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>⏳ Órdenes Pendientes</button>
+                            <button onClick={()=>{setActiveTab('inventario'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'inventario' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📦 Inventario & Stock</button>
+                            <button onClick={()=>{setActiveTab('auditoria'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'auditoria' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📜 Historial Transacciones</button>
+                        </>
+                    )}
+
+                    {(currentUser.rol === 'mecanico') && (
+                        <>
+                            <button onClick={()=>{setActiveTab('mecanico_trabajos'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'mecanico_trabajos' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>🔧 Mis Trabajos Asignados</button>
+                            <button onClick={()=>{setActiveTab('mecanico_stock'); setIsMobileMenuOpen(false);}} className={`w-full text-left p-3 rounded-xl text-sm font-medium transition ${activeTab === 'mecanico_stock' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📦 Consultar Repuestos</button>
+                        </>
+                    )}
+                </>
+            );
+
             return (
-                <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden">
-                    <aside className="w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col justify-between">
+                <div className="flex flex-col lg:flex-row min-h-screen bg-slate-950 text-slate-100 overflow-x-hidden">
+                    {/* BARRA SUPERIOR MÓVIL */}
+                    <header className="lg:hidden bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center sticky top-0 z-40">
+                        <div className="flex items-center gap-2">
+                            <span className="text-2xl">🦝</span>
+                            <div>
+                                <h1 className="font-bold text-sm text-white leading-none">Moto Mapache</h1>
+                                <span className="text-[10px] text-brand-400 font-bold uppercase">{currentUser.rol}</span>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="bg-slate-800 p-2 rounded-xl text-slate-200 hover:bg-slate-700"
+                        >
+                            {isMobileMenuOpen ? '✕' : '☰'}
+                        </button>
+                    </header>
+
+                    {/* MENÚ RESPONSIVO DESPLEGABLE EN MÓVILES */}
+                    {isMobileMenuOpen && (
+                        <div className="lg:hidden bg-slate-900 border-b border-slate-800 p-4 space-y-2 animate-fade-in">
+                            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-3">
+                                <p className="text-[10px] text-slate-500 uppercase font-bold">Usuario Activo</p>
+                                <p className="text-sm font-semibold text-white">{currentUser.nombre}</p>
+                                <p className="text-xs text-slate-400 font-mono">@{currentUser.username}</p>
+                            </div>
+                            <nav className="space-y-1">
+                                {navigationButtons}
+                            </nav>
+                            <button onClick={()=>setCurrentUser(null)} className="w-full mt-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 p-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2">
+                                🚪 Cerrar Sesión
+                            </button>
+                        </div>
+                    )}
+
+                    {/* SIDEBAR ESCRITORIO */}
+                    <aside className="hidden lg:flex w-64 bg-slate-900 border-r border-slate-800 p-4 flex-col justify-between shrink-0">
                         <div>
                             <div className="flex items-center gap-3 mb-6 p-2">
                                 <span className="text-3xl">🦝</span>
@@ -412,34 +506,7 @@
                             </div>
 
                             <nav className="space-y-1">
-                                {currentUser.rol === 'jefe' && (
-                                    <>
-                                        <button onClick={()=>setActiveTab('dashboard')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📊 Dashboard General</button>
-                                        <button onClick={()=>setActiveTab('recepcion_ordenes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'recepcion_ordenes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📝 Crear Órden de Trabajo</button>
-                                        <button onClick={()=>setActiveTab('clientes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'clientes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>👥 Clientes & Motos (DPI)</button>
-                                        <button onClick={()=>setActiveTab('ordenes_jefe')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'ordenes_jefe' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>🛠️ Todas las Órdenes</button>
-                                        <button onClick={()=>setActiveTab('inventario')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'inventario' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📦 Control Inventario</button>
-                                        <button onClick={()=>setActiveTab('auditoria')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'auditoria' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📜 Historial Transacciones</button>
-                                        <button onClick={()=>setActiveTab('otros')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'otros' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📁 Otros (Vistas SQL)</button>
-                                    </>
-                                )}
-
-                                {currentUser.rol === 'recepcionista' && (
-                                    <>
-                                        <button onClick={()=>setActiveTab('recepcion_ordenes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'recepcion_ordenes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📝 Crear Órden de Trabajo</button>
-                                        <button onClick={()=>setActiveTab('clientes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'clientes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>👤 Registrar Cliente (DPI)</button>
-                                        <button onClick={()=>setActiveTab('vista_pendientes')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'vista_pendientes' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>⏳ Órdenes Pendientes</button>
-                                        <button onClick={()=>setActiveTab('inventario')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'inventario' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📦 Inventario & Stock</button>
-                                        <button onClick={()=>setActiveTab('auditoria')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'auditoria' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📜 Historial Transacciones</button>
-                                    </>
-                                )}
-
-                                {currentUser.rol === 'mecanico' && (
-                                    <>
-                                        <button onClick={()=>setActiveTab('mecanico_trabajos')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'mecanico_trabajos' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>🔧 Mis Trabajos Asignados</button>
-                                        <button onClick={()=>setActiveTab('mecanico_stock')} className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'mecanico_stock' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>📦 Consultar Repuestos</button>
-                                    </>
-                                )}
+                                {navigationButtons}
                             </nav>
                         </div>
 
@@ -448,12 +515,12 @@
                         </button>
                     </aside>
 
-                    <main className="flex-1 p-6 overflow-y-auto">
+                    <main className="flex-1 p-4 sm:p-6 overflow-y-auto w-full max-w-full">
                         {/* DASHBOARD JEFE */}
                         {currentUser.rol === 'jefe' && activeTab === 'dashboard' && (
                             <div className="space-y-6">
                                 <h2 className="text-xl font-bold text-white">Panel General de Control (Jefe)</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
                                         <p className="text-xs text-slate-400 uppercase font-semibold">Órdenes Registradas</p>
                                         <h3 className="text-3xl font-extrabold text-white mt-2">{ordenes.length}</h3>
@@ -488,8 +555,8 @@
                                     </div>
                                 )}
 
-                                <form onSubmit={handleCrearOrdenTrabajo} className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-5">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <form onSubmit={handleCrearOrdenTrabajo} className="bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-800 space-y-5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-xs font-semibold text-slate-400 mb-1">Propietario / Cliente (por DPI)</label>
                                             <select 
@@ -521,7 +588,7 @@
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-xs font-semibold text-slate-400 mb-1">Mecánico Encargado Asignado</label>
                                             <select 
@@ -550,7 +617,7 @@
 
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-400 mb-2">Seleccionar Servicios Solicitados</label>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                             {servicios.map(s => {
                                                 const seleccionado = ordenServiciosSeleccionados.some(x => x.id === s.id);
                                                 return (
@@ -567,14 +634,14 @@
                                         </div>
                                     </div>
 
-                                    <div className="pt-2 flex items-center justify-between border-t border-slate-800">
+                                    <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-slate-800">
                                         <div>
                                             <p className="text-xs text-slate-400">Total Estimado en Servicios:</p>
                                             <p className="text-xl font-extrabold text-emerald-400">
                                                 Q {ordenServiciosSeleccionados.reduce((acc, s) => acc + s.precio, 0).toFixed(2)}
                                             </p>
                                         </div>
-                                        <button type="submit" className="bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold px-6 py-3 rounded-xl text-sm transition">
+                                        <button type="submit" className="w-full sm:w-auto bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold px-6 py-3 rounded-xl text-sm transition">
                                             📄 Generar y Guardar Órden de Trabajo
                                         </button>
                                     </div>
@@ -582,15 +649,15 @@
                             </div>
                         )}
 
-                        {/* MÓDULO CLIENTES Y MOTOS (ACCESIBLE PARA JEFE Y RECEPCIONISTA) */}
+                        {/* MÓDULO CLIENTES Y MOTOS CON FUNCIONES AGREGAR, MODIFICAR Y ELIMINAR (CRUD) */}
                         {activeTab === 'clientes' && (
                             <div className="space-y-6">
-                                <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                                <div className="bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-800">
                                     <h3 className="text-lg font-bold text-white mb-2">👤 Registrar Nuevo Cliente y Motocicleta (DPI de 13 dígitos)</h3>
                                     <p className="text-xs text-slate-400 mb-4">Añade clientes a la base de datos utilizando directamente su código de DPI de Guatemala como ID principal.</p>
 
                                     <form onSubmit={handleGuardarClienteYMoto} className="space-y-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                             <div>
                                                 <label className="block text-xs text-slate-400 mb-1">DPI del Cliente (13 dígitos) *</label>
                                                 <input 
@@ -627,7 +694,7 @@
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                             <div>
                                                 <label className="block text-xs text-slate-400 mb-1">Teléfono</label>
                                                 <input 
@@ -662,7 +729,7 @@
 
                                         <div className="border-t border-slate-800 pt-3">
                                             <p className="text-xs font-bold text-brand-400 uppercase mb-2">🏍️ Datos de la Motocicleta del Cliente (Opcional)</p>
-                                            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                                                 <div>
                                                     <input 
                                                         type="text" 
@@ -711,47 +778,72 @@
                                             </div>
                                         </div>
 
-                                        <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition">
+                                        <button type="submit" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition">
                                             💾 Guardar Cliente y Motocicleta
                                         </button>
                                     </form>
                                 </div>
 
-                                <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                                    <h3 className="text-lg font-bold text-white mb-4">Listado de Clientes Registrados</h3>
-                                    <table className="w-full text-left text-sm text-slate-300">
-                                        <thead className="bg-slate-800 text-xs uppercase text-slate-400">
-                                            <tr>
-                                                <th className="p-3">DPI (ID Cliente)</th>
-                                                <th className="p-3">Nombre Completo</th>
-                                                <th className="p-3">Teléfono</th>
-                                                <th className="p-3">Motocicleta Asociada</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-800">
-                                            {clientes.map(c => {
-                                                const motosDelCliente = motocicletas.filter(m => m.clienteDpi === c.dpi);
-                                                return (
-                                                    <tr key={c.dpi}>
-                                                        <td className="p-3 font-mono text-brand-400 font-bold">{c.dpi}</td>
-                                                        <td className="p-3 font-semibold text-white">{c.nombre} {c.apellido}</td>
-                                                        <td className="p-3">{c.telefono || 'N/A'}</td>
-                                                        <td className="p-3">
-                                                            {motosDelCliente.length > 0 ? (
-                                                                motosDelCliente.map(m => (
-                                                                    <span key={m.id} className="inline-block bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-xs text-slate-300 mr-1">
-                                                                        {m.marca} {m.modelo} ({m.placa})
-                                                                    </span>
-                                                                ))
-                                                            ) : (
-                                                                <span className="text-slate-500 italic">Sin vehículo</span>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
+                                <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800">
+                                    <h3 className="text-lg font-bold text-white mb-4">Gestión de Clientes y Motocicletas Registradas</h3>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-sm text-slate-300 min-w-[640px]">
+                                            <thead className="bg-slate-800 text-xs uppercase text-slate-400">
+                                                <tr>
+                                                    <th className="p-3">DPI (ID Cliente)</th>
+                                                    <th className="p-3">Nombre Completo</th>
+                                                    <th className="p-3">Teléfono / Contacto</th>
+                                                    <th className="p-3">Motocicletas</th>
+                                                    <th className="p-3 text-right">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-800">
+                                                {clientes.map(c => {
+                                                    const motosDelCliente = motocicletas.filter(m => m.clienteDpi === c.dpi);
+                                                    return (
+                                                        <tr key={c.dpi}>
+                                                            <td className="p-3 font-mono text-brand-400 font-bold">{c.dpi}</td>
+                                                            <td className="p-3 font-semibold text-white">{c.nombre} {c.apellido}</td>
+                                                            <td className="p-3">
+                                                                <p>{c.telefono || 'Sin tel.'}</p>
+                                                                <p className="text-[10px] text-slate-500">{c.email}</p>
+                                                            </td>
+                                                            <td className="p-3">
+                                                                {motosDelCliente.length > 0 ? (
+                                                                    <div className="flex flex-wrap gap-1">
+                                                                        {motosDelCliente.map(m => (
+                                                                            <span key={m.id} className="inline-flex items-center gap-1 bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-xs text-slate-300">
+                                                                                {m.marca} {m.modelo} ({m.placa})
+                                                                                {(currentUser.rol === 'jefe' || currentUser.rol === 'recepcionista') && (
+                                                                                    <button onClick={()=>handleEliminarMoto(m.id)} title="Eliminar vehículo" className="text-rose-500 hover:text-rose-400 ml-1 font-bold">×</button>
+                                                                                )}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-slate-500 italic">Sin vehículo</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-3 text-right space-x-1">
+                                                                <button 
+                                                                    onClick={() => setEditingCliente(c)} 
+                                                                    className="bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500/20 px-2.5 py-1 rounded-lg text-xs font-bold transition"
+                                                                >
+                                                                    ✏️ Modificar
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleEliminarCliente(c.dpi)} 
+                                                                    className="bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 px-2.5 py-1 rounded-lg text-xs font-bold transition"
+                                                                >
+                                                                    🗑️ Eliminar
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -772,9 +864,9 @@
                                     <button onClick={()=>setOtrosSubTab('vista_motocicletas_en_taller')} className={`px-3 py-2 rounded-xl text-xs font-bold transition ${otrosSubTab === 'vista_motocicletas_en_taller' ? 'bg-brand-500 text-slate-950' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800'}`}>🏍️ V. Motos en Taller</button>
                                 </div>
 
-                                <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                                <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 overflow-x-auto">
                                     {otrosSubTab === 'vista_ordenes_pendientes' && (
-                                        <div className="space-y-3">
+                                        <div className="space-y-3 min-w-[500px]">
                                             <h4 className="text-sm font-bold text-white font-mono uppercase">VIEW: vista_ordenes_pendientes</h4>
                                             <table className="w-full text-left text-xs text-slate-300">
                                                 <thead className="bg-slate-800 uppercase text-slate-400">
@@ -802,7 +894,7 @@
                                     )}
 
                                     {otrosSubTab === 'vista_trabajos_por_mecanico' && (
-                                        <div className="space-y-3">
+                                        <div className="space-y-3 min-w-[500px]">
                                             <h4 className="text-sm font-bold text-white font-mono uppercase">VIEW: vista_trabajos_por_mecanico</h4>
                                             <table className="w-full text-left text-xs text-slate-300">
                                                 <thead className="bg-slate-800 uppercase text-slate-400">
@@ -828,7 +920,7 @@
                                     )}
 
                                     {otrosSubTab === 'vista_historial_mantenimiento' && (
-                                        <div className="space-y-3">
+                                        <div className="space-y-3 min-w-[500px]">
                                             <h4 className="text-sm font-bold text-white font-mono uppercase">VIEW: vista_historial_mantenimiento</h4>
                                             <table className="w-full text-left text-xs text-slate-300">
                                                 <thead className="bg-slate-800 uppercase text-slate-400">
@@ -852,7 +944,7 @@
                                     )}
 
                                     {otrosSubTab === 'vista_repuestos_baja_existencia' && (
-                                        <div className="space-y-3">
+                                        <div className="space-y-3 min-w-[500px]">
                                             <h4 className="text-sm font-bold text-white font-mono uppercase">VIEW: vista_repuestos_baja_existencia</h4>
                                             <table className="w-full text-left text-xs text-slate-300">
                                                 <thead className="bg-slate-800 uppercase text-slate-400">
@@ -874,7 +966,7 @@
                                     )}
 
                                     {otrosSubTab === 'vista_motocicletas_en_taller' && (
-                                        <div className="space-y-3">
+                                        <div className="space-y-3 min-w-[500px]">
                                             <h4 className="text-sm font-bold text-white font-mono uppercase">VIEW: vista_motocicletas_en_taller</h4>
                                             <table className="w-full text-left text-xs text-slate-300">
                                                 <thead className="bg-slate-800 uppercase text-slate-400">
@@ -911,7 +1003,7 @@
                                         const moto = motocicletas.find(m => m.id === o.motocicletaId);
                                         const mec = mecanicos.find(m => m.id === o.mecanicoId);
                                         return (
-                                            <div key={o.id} className="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex justify-between items-center">
+                                            <div key={o.id} className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                                                 <div>
                                                     <span className="text-xs font-mono text-brand-400 font-bold">ÓRDEN #{o.id} - {o.fechaIngreso}</span>
                                                     <h4 className="text-white font-bold">{moto?.marca} {moto?.modelo} ({moto?.placa})</h4>
@@ -927,8 +1019,8 @@
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="text-right">
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${o.estado === 'Finalizada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>{o.estado}</span>
+                                                <div className="text-left sm:text-right w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-bold inline-block ${o.estado === 'Finalizada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>{o.estado}</span>
                                                     <p className="text-sm font-extrabold text-emerald-400 mt-2">Total: Q {o.costoTotal.toFixed(2)}</p>
                                                 </div>
                                             </div>
@@ -944,16 +1036,16 @@
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                     <h3 className="text-lg font-bold text-white">Stock e Inventario de Repuestos</h3>
                                     {(currentUser.rol === 'jefe' || currentUser.rol === 'recepcionista') && (
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                                             <button 
                                                 onClick={() => setShowNewProductModal(true)} 
-                                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
+                                                className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition flex items-center justify-center gap-1.5"
                                             >
                                                 ✨ Crear Nuevo Producto
                                             </button>
                                             <button 
                                                 onClick={() => setShowStockModal(true)} 
-                                                className="bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
+                                                className="flex-1 sm:flex-none bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition flex items-center justify-center gap-1.5"
                                             >
                                                 ➕ Sumar Stock Existente
                                             </button>
@@ -961,7 +1053,7 @@
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {repuestos.map(r => (
                                         <div key={r.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
                                             <div>
@@ -985,42 +1077,44 @@
 
                         {/* HISTORIAL DE TRANSACCIONES */}
                         {activeTab === 'auditoria' && (
-                            <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+                            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
                                 <div>
                                     <h3 className="text-lg font-bold text-white">Historial de Transacciones y Auditoría de Stock</h3>
                                     <p className="text-xs text-slate-400">Muestra en tiempo real qué usuario agregó o descontó productos del inventario con fecha y hora.</p>
                                 </div>
 
-                                <table className="w-full text-left text-sm text-slate-300">
-                                    <thead className="bg-slate-800 text-xs uppercase text-slate-400">
-                                        <tr>
-                                            <th className="p-3">#</th>
-                                            <th className="p-3">Repuesto</th>
-                                            <th className="p-3">Tipo Movimiento</th>
-                                            <th className="p-3">Cantidad</th>
-                                            <th className="p-3">Usuario Que Registró</th>
-                                            <th className="p-3">Fecha y Hora</th>
-                                            <th className="p-3">Descripción</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-800">
-                                        {movimientos.map(m => (
-                                            <tr key={m.id}>
-                                                <td className="p-3 font-mono text-slate-500">{m.id}</td>
-                                                <td className="p-3 font-bold text-white">{m.repuestoNombre}</td>
-                                                <td className="p-3">
-                                                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${m.tipo === 'Entrada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
-                                                        {m.tipo}
-                                                    </span>
-                                                </td>
-                                                <td className="p-3 font-bold">{m.cantidad}</td>
-                                                <td className="p-3 font-mono text-brand-400 font-semibold">@{m.usuario}</td>
-                                                <td className="p-3 text-xs text-slate-400">{m.fechaHora}</td>
-                                                <td className="p-3 text-xs text-slate-300">{m.descripcion}</td>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm text-slate-300 min-w-[600px]">
+                                        <thead className="bg-slate-800 text-xs uppercase text-slate-400">
+                                            <tr>
+                                                <th className="p-3">#</th>
+                                                <th className="p-3">Repuesto</th>
+                                                <th className="p-3">Tipo Movimiento</th>
+                                                <th className="p-3">Cantidad</th>
+                                                <th className="p-3">Usuario Que Registró</th>
+                                                <th className="p-3">Fecha y Hora</th>
+                                                <th className="p-3">Descripción</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-800">
+                                            {movimientos.map(m => (
+                                                <tr key={m.id}>
+                                                    <td className="p-3 font-mono text-slate-500">{m.id}</td>
+                                                    <td className="p-3 font-bold text-white">{m.repuestoNombre}</td>
+                                                    <td className="p-3">
+                                                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${m.tipo === 'Entrada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                                                            {m.tipo}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-3 font-bold">{m.cantidad}</td>
+                                                    <td className="p-3 font-mono text-brand-400 font-semibold">@{m.usuario}</td>
+                                                    <td className="p-3 text-xs text-slate-400">{m.fechaHora}</td>
+                                                    <td className="p-3 text-xs text-slate-300">{m.descripcion}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         )}
 
@@ -1035,8 +1129,8 @@
                                 {ordenes.filter(o => o.mecanicoId === currentUser.mecanicoId).map(o => {
                                     const moto = motocicletas.find(m => m.id === o.motocicletaId);
                                     return (
-                                        <div key={o.id} className="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
-                                            <div className="flex justify-between items-start">
+                                        <div key={o.id} className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
+                                            <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                                                 <div>
                                                     <span className="text-xs font-mono text-brand-400 font-bold">ÓRDEN DE TRABAJO #{o.id}</span>
                                                     <h4 className="text-white font-bold text-lg">{moto?.marca} {moto?.modelo} ({moto?.placa})</h4>
@@ -1076,6 +1170,80 @@
                             </div>
                         )}
                     </main>
+
+                    {/* MODAL EDITAR CLIENTE */}
+                    {editingCliente && (
+                        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-md w-full space-y-4">
+                                <h3 className="text-lg font-bold text-white">✏️ Modificar Registro de Cliente</h3>
+                                <form onSubmit={handleActualizarCliente} className="space-y-3">
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">DPI del Cliente (No editable)</label>
+                                        <input 
+                                            type="text" 
+                                            value={editingCliente.dpi} 
+                                            className="w-full bg-slate-950/50 border border-slate-800 rounded-xl p-2.5 text-sm text-slate-500 font-mono" 
+                                            disabled 
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Nombre</label>
+                                            <input 
+                                                type="text" 
+                                                value={editingCliente.nombre} 
+                                                onChange={e => setEditingCliente({ ...editingCliente, nombre: e.target.value })}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500" 
+                                                required 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Apellido</label>
+                                            <input 
+                                                type="text" 
+                                                value={editingCliente.apellido} 
+                                                onChange={e => setEditingCliente({ ...editingCliente, apellido: e.target.value })}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500" 
+                                                required 
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">Teléfono</label>
+                                        <input 
+                                            type="text" 
+                                            value={editingCliente.telefono} 
+                                            onChange={e => setEditingCliente({ ...editingCliente, telefono: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">Email</label>
+                                        <input 
+                                            type="email" 
+                                            value={editingCliente.email} 
+                                            onChange={e => setEditingCliente({ ...editingCliente, email: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">Dirección</label>
+                                        <input 
+                                            type="text" 
+                                            value={editingCliente.direccion} 
+                                            onChange={e => setEditingCliente({ ...editingCliente, direccion: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-brand-500" 
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-2 justify-end pt-3">
+                                        <button type="button" onClick={() => setEditingCliente(null)} className="bg-slate-800 text-slate-300 text-xs px-4 py-2.5 rounded-xl font-bold">Cancelar</button>
+                                        <button type="submit" className="bg-brand-500 text-slate-950 text-xs px-4 py-2.5 rounded-xl font-bold">Guardar Cambios</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
 
                     {/* MODAL CREAR NUEVO PRODUCTO EN CATÁLOGO */}
                     {showNewProductModal && (
